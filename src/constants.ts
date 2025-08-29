@@ -4,13 +4,17 @@ import { BasicMetadata } from "./metadata/types";
  * @description Default flavour identifier for the decorator system
  * @summary Defines the default flavour used by the Decoration class when no specific flavour is provided.
  * This constant is used throughout the library as the fallback flavour for decorators.
- *
- * @const {string}
+ * @const DefaultFlavour
  * @memberOf module:decoration
- * @category Model
  */
 export const DefaultFlavour = "decaf";
 
+/**
+ * @description Character used to split nested metadata keys
+ * @summary The delimiter used by the metadata store to traverse nested object paths when reading/writing values.
+ * @const ObjectKeySplitter
+ * @memberOf module:decoration
+ */
 export const ObjectKeySplitter = ".";
 
 /**
@@ -20,18 +24,42 @@ export const ObjectKeySplitter = ".";
  * their properties, and their behavior.
  * @readonly
  * @enum {string}
+ * @readonly
  * @memberOf module:decoration
  */
 export enum DecorationKeys {
+  /** Storage key used on the constructor to mirror runtime metadata */
   REFLECT = `__${DefaultFlavour}`,
+  /** Map of model property keys to their reflected design types */
   PROPERTIES = "properties",
+  /** Key under which the model's constructor is stored */
   CLASS = "class",
+  /** Container of human-friendly descriptions per class and property */
   DESCRIPTION = "description",
+  /** Reflect metadata key for design time type of a property */
   DESIGN_TYPE = "design:type",
+  /** Reflect metadata key for constructor parameter types */
   DESIGN_PARAMS = "design:paramtypes",
+  /** Reflect metadata key for method return type */
   DESIGN_RETURN = "design:returntype",
 }
 
+/**
+ * @description Typedef for the default metadata object shape
+ * @summary Describes the minimal structure persisted for a model before any metadata is recorded.
+ * @template M
+ * @typedef {object} DefaultMetadataType<M>
+ * @property {Record<keyof M, import("../metadata/types").Constructor<M> | undefined>} properties - Mapping of property names to their design types
+ * @memberOf module:decoration
+ */
+
+/**
+ * @description Default metadata instance
+ * @summary Concrete default metadata object used when initializing metadata for a model
+ * @type {DefaultMetadataType<any>}
+ * @const DefaultMetadata
+ * @memberOf module:decoration
+ */
 export const DefaultMetadata: BasicMetadata<any> = {
   [DecorationKeys.PROPERTIES]: [],
 } as unknown as BasicMetadata<any>;

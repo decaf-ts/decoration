@@ -8,6 +8,13 @@ import {
 } from "./types";
 import { DefaultFlavour } from "../constants";
 
+/**
+ * @description Default resolver that returns the current default flavour
+ * @summary Resolves the flavour for a given target by always returning the library's DefaultFlavour value.
+ * @param {object} target The target object being decorated
+ * @return {string} The resolved flavour identifier
+ * @memberOf module:decoration
+ */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function defaultFlavourResolver(target: object) {
   return DefaultFlavour;
