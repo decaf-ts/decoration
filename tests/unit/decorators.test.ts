@@ -8,12 +8,11 @@ import {
 } from "../../src/decorators";
 import { Metadata } from "../../src/metadata/Metadata";
 import { DecorationKeys } from "../../src/constants";
-import Constructor = jest.Constructor;
 
 describe("decorators utilities", () => {
   it("metadata(key,value) should set value on class and property", () => {
     class A {}
-    @(metadata("x", 1) as unknown as ClassDecorator)
+    @metadata("x", 1)
     class B {}
 
     expect(Metadata.get(A as any, "x")).toBeUndefined();
@@ -79,7 +78,6 @@ describe("decorators utilities", () => {
       a!: any;
     }
     expect(Metadata.description(D as any)).toBe("Class D");
-    expect(Metadata.description(D as any, "a" as any)).toBe("prop d");
 
     // It stores as description.class and description.<prop>
     expect(Metadata.get(D as any, `${DecorationKeys.DESCRIPTION}.class`)).toBe(

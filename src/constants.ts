@@ -49,7 +49,7 @@ export enum DecorationKeys {
  * @summary Describes the minimal structure persisted for a model before any metadata is recorded.
  * @template M
  * @typedef {object} DefaultMetadataType<M>
- * @property {Record<keyof M, import("../metadata/types").Constructor<M> | undefined>} properties - Mapping of property names to their design types
+ * @property {Record<string, Constructor | undefined>} properties - Mapping of property names to their design types
  * @memberOf module:decoration
  */
 

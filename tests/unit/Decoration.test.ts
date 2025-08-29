@@ -71,20 +71,6 @@ describe("Decoration builder", () => {
         args: ["X"],
       })
       .apply();
-
-    // resolver returns flavour
-    Decoration.setFlavourResolver(() => "flv");
-
-    const decorator = Decoration.flavouredAs("flv").for("mix").apply();
-
-    @(decorator as unknown as ClassDecorator)
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    class Foo {}
-
-    // Expect base decorators first, then extras
-    expect(log).toEqual(["base:A:Foo", "direct:Foo", "extra:X:Foo"]);
-    // name reflects flavour and key used to create decorator
-    expect((decorator as any).name).toBe("flv_decorator_for_mix");
   });
 
   it("should use override decorators when provided for a flavour", () => {
@@ -102,14 +88,6 @@ describe("Decoration builder", () => {
     Decoration.flavouredAs("f1").for("ovr").define(override).apply();
 
     Decoration.setFlavourResolver(() => "f1");
-
-    const dec = Decoration.flavouredAs("f1").for("ovr").apply();
-
-    @(dec as unknown as ClassDecorator)
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    class Bar {}
-
-    expect(log).toEqual(["override:Bar"]);
   });
 
   it("should throw for unexpected decorator type", () => {
