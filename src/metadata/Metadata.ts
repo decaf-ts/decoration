@@ -218,6 +218,10 @@ export class Metadata<
     return this.instance.properties(model);
   }
 
+  static description<M>(model: Constructor, prop?: keyof M) {
+    return this.instance.description(model, prop);
+  }
+
   static type(model: Constructor, prop: string) {
     return this.instance.type(model, prop);
   }
