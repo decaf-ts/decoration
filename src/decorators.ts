@@ -6,7 +6,7 @@ import { DecorationKeys } from "./constants";
  * @summary Decorator factory that stores a key/value pair in the central Metadata store for the provided class or member.
  * @param {string} key The metadata key to associate with the target
  * @param {*} value The metadata value to store under the given key
- * @return {(model: object, prop?: any, descriptor?: PropertyDescriptor) => void} A decorator that writes the metadata when applied
+ * @return A decorator that writes the metadata when applied
  * @function metadata
  * @category Decorators
  */
@@ -25,7 +25,7 @@ export function metadata(key: string, value: any) {
 /**
  * @description Captures and stores a property's design type
  * @summary Decorator factory that reads the reflected design:type for a property and registers it in the Metadata store under the properties map.
- * @return {(model: object, prop: any) => void} A decorator that records the property's type metadata when applied
+ * @return A decorator that records the property's type metadata when applied
  * @function prop
  * @category Decorators
  */
@@ -89,7 +89,7 @@ export function apply(
  * @summary Convenience factory that combines metadata(key, value) and prop() to both set an arbitrary metadata key and record the property's design type.
  * @param {string} key The metadata key to set for the property
  * @param {*} value The metadata value to associate with the key
- * @return {(model: object, prop: any) => void} A decorator that sets the metadata and captures the property's type
+ * @return A decorator that sets the metadata and captures the property's type
  * @function propMetadata
  * @category Decorators
  */
@@ -101,7 +101,7 @@ export function propMetadata(key: string, value: any) {
  * @description Attaches a human-readable description to a class or member
  * @summary Decorator factory that stores a textual description in the Metadata store under the appropriate description key for a class or its property.
  * @param {string} desc The descriptive text to associate with the class or property
- * @return {(original: any, prop: any, descriptor?: any) => void} A decorator that records the description when applied
+ * @return A decorator that records the description when applied
  * @function description
  * @category Decorators
  */
