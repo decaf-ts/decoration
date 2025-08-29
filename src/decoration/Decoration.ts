@@ -6,7 +6,7 @@ import {
   FlavourResolver,
   IDecorationBuilder,
 } from "./types";
-import { DefaultFlavour } from "./constants";
+import { DefaultFlavour } from "../constants";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function defaultFlavourResolver(target: object) {
