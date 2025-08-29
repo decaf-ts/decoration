@@ -60,3 +60,12 @@ export function apply(
 export function propMetadata(key: string, value: any) {
   return apply(metadata(key, value), prop());
 }
+
+export function description(desc: string) {
+  return function description(original: any, prop: any, descriptor?: any) {
+    return metadata(
+      `${DecorationKeys.DESCRIPTION}${prop ? `.${prop}` : ".class"}`,
+      desc
+    )(original, prop, descriptor);
+  };
+}

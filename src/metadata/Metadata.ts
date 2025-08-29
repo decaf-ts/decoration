@@ -1,4 +1,4 @@
-import { Constructor } from "./types";
+import { BasicMetadata, Constructor } from "./types";
 import { DecorationKeys, ObjectKeySplitter } from "../constants";
 import "reflect-metadata";
 
@@ -42,82 +42,52 @@ function setValueBySplitter(
   current[keys[keys.length - 1]] = value;
 }
 
-export type ModelMetadata<M> = {
-  class: Constructor<M>;
-  description?: string;
-  table?: string;
-  properties: Record<string, any>;
-  validation?: Record<string, any[]>;
-  relations?: Record<string, any>;
-  generated?: Record<string, any>;
-  pk: string;
-  fks?: Record<string, any>;
-  indexes?: Record<string, any>;
-};
+export class Metadata<
+  M = any,
+  META extends BasicMetadata<M> = BasicMetadata<M>,
+> {
+  private static _instance: Metadata;
+  private _metadata: Record<symbol, META> = {};
 
-export class Metadata {
-  private static _metadata: Record<symbol, ModelMetadata<any>> = {};
-
-  static splitter = ObjectKeySplitter;
-  static baseKey = DecorationKeys.REFLECT;
+  splitter = ObjectKeySplitter;
+  baseKey = DecorationKeys.REFLECT;
   static mirror: boolean = true;
 
   private constructor() {}
 
-  static getProperties(model: Constructor) {
+  static get instance() {
+    if (!this._instance) this._instance = new Metadata();
+    return this._instance;
+  }
+
+  static set instance(instance: Metadata) {
+    this._instance = instance;
+  }
+
+  properties(model: Constructor) {
     const meta = this.get(model);
     if (!meta) return undefined;
     return Object.keys(meta.properties);
   }
-  //
-  // static pk(model: Constructor) {
-  //   const meta = this.get(model);
-  //   if (!meta) return undefined;
-  //   return Object.keys(meta.pk)[0];
-  // }
 
-  static type(model: Constructor, prop: string) {
+  type(model: Constructor, prop: string) {
     return this.get(model, `${DecorationKeys.PROPERTIES}.${prop}`);
   }
-  //
-  // static type(model: Constructor, prop: string) {
-  //   return this.types(model, prop)[0];
-  // }
-  //
-  // static types(model: Constructor, prop: string) {
-  //   let designType: any = this.get(
-  //     model,
-  //     `${DecorationKeys.PROPERTIES}.${prop}`
-  //   );
-  //   if (!designType)
-  //     throw new Error(`Property ${prop} not found in ${model.name}`);
-  //   designType = [designType];
-  //   const symbol = Symbol.for(model.toString());
-  //   if (this._metadata[symbol]) {
-  //     const meta = this._metadata[symbol];
-  //     if (meta.validation) {
-  //       const validation = meta.validation;
-  //       if (validation[DecorationKeys.TYPE])
-  //         designType = designType.concat(validation[DecorationKeys.TYPE]);
-  //     }
-  //   }
-  //   return designType.filter(Boolean);
-  // }
 
-  static get<M>(model: Constructor<M>): ModelMetadata<M> | undefined;
-  static get(model: Constructor, key: string): any;
-  static get(model: Constructor, key?: string) {
+  get<M>(model: Constructor<M>): META | undefined;
+  get(model: Constructor, key: string): any;
+  get(model: Constructor, key?: string) {
     const symbol = Symbol.for(model.toString());
     if (!this._metadata[symbol]) return undefined;
     if (!key) return this._metadata[symbol];
     return getValueBySplitter(this._metadata[symbol], key, this.splitter);
   }
 
-  static set(model: Constructor, key: string, value: any) {
+  set(model: Constructor, key: string, value: any) {
     const symbol = Symbol.for(model.toString());
     if (!this._metadata[symbol]) this._metadata[symbol] = {} as any;
     if (
-      this.mirror &&
+      Metadata.mirror &&
       !Object.prototype.hasOwnProperty.call(model, this.baseKey)
     ) {
       Object.defineProperty(model, this.baseKey, {
@@ -128,5 +98,25 @@ export class Metadata {
       });
     }
     setValueBySplitter(this._metadata[symbol], key, value, this.splitter);
+  }
+
+  static properties(model: Constructor) {
+    return this.instance.properties(model);
+  }
+
+  static type(model: Constructor, prop: string) {
+    return this.instance.type(model, prop);
+  }
+
+  static get<M, META extends BasicMetadata<M> = BasicMetadata<M>>(
+    model: Constructor<M>
+  ): META | undefined;
+  static get(model: Constructor, key: string): any;
+  static get(model: Constructor, key?: string) {
+    return this.instance.get(model, key as any);
+  }
+
+  static set(model: Constructor, key: string, value: any) {
+    return this.instance.set(model, key, value);
   }
 }

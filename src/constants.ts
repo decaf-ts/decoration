@@ -24,14 +24,14 @@ export const ObjectKeySplitter = ".";
  */
 export enum DecorationKeys {
   REFLECT = `__${DefaultFlavour}`,
-  PROPERTIES = "props",
-  TYPE = "type",
-  ALT_TYPES = "allowedTypes",
+  PROPERTIES = "properties",
+  CLASS = "class",
+  DESCRIPTION = "description",
   DESIGN_TYPE = "design:type",
   DESIGN_PARAMS = "design:paramtypes",
   DESIGN_RETURN = "design:returntype",
 }
 
-export const defaultMetadata: BasicMetadata = {
+export const DefaultMetadata: BasicMetadata<any> = {
   [DecorationKeys.PROPERTIES]: [],
-};
+} as unknown as BasicMetadata<any>;
