@@ -70,6 +70,13 @@ export class Metadata<
     return Object.keys(meta.properties);
   }
 
+  description<M>(model: Constructor<M>, prop?: keyof M) {
+    return this.get(
+      model,
+      `${DecorationKeys.DESCRIPTION}${prop ? `.${prop.toString()}` : DecorationKeys.CLASS}`
+    );
+  }
+
   type(model: Constructor, prop: string) {
     return this.get(model, `${DecorationKeys.PROPERTIES}.${prop}`);
   }
