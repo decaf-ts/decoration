@@ -21,7 +21,8 @@ function report(name: string, data: any) {
 }
 
 function f1() {
-  return Decoration.for("f1").define(report("f1", {})).apply();
+  return Decoration.for("f1").define(
+    report("f1", {})).apply();
 }
 
 function f2() {
@@ -41,10 +42,54 @@ function f5() {
   return Decoration.for("f5").define(apply(f3(), f4())).apply();
 }
 
+ 
+function f6() {
+  return Decoration.for("f6").define({
+    decorator: report,
+    args: ["f6", {}],
+  }).apply();
+}
+
+Decoration.flavouredAs("asdasd").for("f6").define({
+  decorator: report2,
+}).apply()
+
+Decoration.setFlavourResolver(() => "asdasd");
+
+class TTT {
+  @f6()
+  a: string = undefined;
+  constructor() {
+  }
+}
+
+
+Decoration.flavouredAs("assdfsdg").for("f6").extend({
+  decorator: report2,
+}).apply()
+
+
+Decoration.setFlavourResolver(() => "assdfsdg");
+
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function f7() {
+  return Decoration.for("f6").define({
+    decorator: report2,
+  }).apply();
+}
+
+ 
+function f7() {
+  return Decoration.for("f6").extend({
+    decorator: report2,
+  }).apply();
+}
+
 const flavour = "flavour1";
 Decoration.flavouredAs(flavour).for("f4").define(f1()).apply();
 
-@f4()
+@f4("test")
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 class ConstructionDecoration1 {
   constructor() {
