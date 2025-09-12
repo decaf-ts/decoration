@@ -6,7 +6,7 @@ import { DecoratorData } from "./Decoration";
  * the configured decorator to a target. This is the final stage in the builder chain.
  *
  * @interface DecorationBuilderBuild
- * @memberOf module:decorator-validation
+ * @memberOf module:decoration
  * @category Model
  */
 export interface DecorationBuilderBuild {
@@ -30,7 +30,7 @@ export interface DecorationBuilderBuild {
  * additional decorators to the existing configuration.
  *
  * @interface DecorationBuilderEnd
- * @memberOf module:decorator-validation
+ * @memberOf module:decoration
  * @category Model
  */
 export interface DecorationBuilderEnd {
@@ -51,7 +51,7 @@ export interface DecorationBuilderEnd {
  * and providing the ability to define the primary decorators for the configuration.
  *
  * @interface DecorationBuilderMid
- * @memberOf module:decorator-validation
+ * @memberOf module:decoration
  * @category Model
  */
 export interface DecorationBuilderMid extends DecorationBuilderEnd {
@@ -71,7 +71,7 @@ export interface DecorationBuilderMid extends DecorationBuilderEnd {
  * for the builder pattern by specifying the key for the decorator.
  *
  * @interface DecorationBuilderStart
- * @memberOf module:decorator-validation
+ * @memberOf module:decoration
  * @category Model
  */
 export interface DecorationBuilderStart {
@@ -93,7 +93,7 @@ export interface DecorationBuilderStart {
  * This interface is implemented by the Decoration class.
  *
  * @interface IDecorationBuilder
- * @memberOf module:decorator-validation
+ * @memberOf module:decoration
  * @category Model
  */
 export interface IDecorationBuilder
@@ -111,7 +111,7 @@ export interface IDecorationBuilder
  *
  * @param {object} target - The target object to resolve the flavour for
  * @return {string} The resolved flavour identifier
- * @memberOf module:decorator-validation
+ * @memberOf module:decoration
  * @category Model
  */
 export type FlavourResolver = (target: object) => string;

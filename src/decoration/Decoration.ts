@@ -13,6 +13,7 @@ import { DefaultFlavour } from "../constants";
  * @summary Resolves the flavour for a given target by always returning the library's DefaultFlavour value.
  * @param {object} target The target object being decorated
  * @return {string} The resolved flavour identifier
+ * @function defaultFlavourResolver
  * @memberOf module:decoration
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -180,6 +181,14 @@ export class Decoration implements IDecorationBuilder {
     return this.decorate(true, ...decorators);
   }
 
+  /**
+   * @description Factory that creates a context-aware decorator for a key/flavour
+   * @summary Produces a decorator function bound to the provided key and flavour. The resulting decorator resolves the actual
+   * decorators to apply at invocation time based on the target's resolved flavour and the registered base and extra decorators.
+   * @param {string} key The decoration key used to look up registered decorators
+   * @param {string} [f=DefaultFlavour] Optional explicit flavour to bind the factory to
+   * @return {(target: object, propertyKey?: any, descriptor?: TypedPropertyDescriptor<any)) => any} A decorator function that applies the resolved decorators
+   */
   protected decoratorFactory(key: string, f: string = DefaultFlavour) {
     function contextDecorator(
       target: object,
@@ -316,6 +325,12 @@ export class Decoration implements IDecorationBuilder {
     Decoration.flavourResolver = resolver;
   }
 
+  /**
+   * @description Convenience static entry to start a decoration builder
+   * @summary Creates a new Decoration instance and initiates the builder chain with the provided key.
+   * @param {string} key The decoration key to configure
+   * @return {DecorationBuilderMid} A builder instance for chaining definitions
+   */
   static for(key: string): DecorationBuilderMid {
     return new Decoration().for(key);
   }
