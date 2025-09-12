@@ -6,8 +6,6 @@ import { DecoratorData } from "./Decoration";
  * the configured decorator to a target. This is the final stage in the builder chain.
  *
  * @interface DecorationBuilderBuild
- * @memberOf module:decoration
- * @category Model
  */
 export interface DecorationBuilderBuild {
   /**
@@ -31,7 +29,6 @@ export interface DecorationBuilderBuild {
  *
  * @interface DecorationBuilderEnd
  * @memberOf module:decoration
- * @category Model
  */
 export interface DecorationBuilderEnd {
   /**
@@ -52,7 +49,6 @@ export interface DecorationBuilderEnd {
  *
  * @interface DecorationBuilderMid
  * @memberOf module:decoration
- * @category Model
  */
 export interface DecorationBuilderMid extends DecorationBuilderEnd {
   /**
@@ -72,7 +68,6 @@ export interface DecorationBuilderMid extends DecorationBuilderEnd {
  *
  * @interface DecorationBuilderStart
  * @memberOf module:decoration
- * @category Model
  */
 export interface DecorationBuilderStart {
   /**
@@ -94,7 +89,6 @@ export interface DecorationBuilderStart {
  *
  * @interface IDecorationBuilder
  * @memberOf module:decoration
- * @category Model
  */
 export interface IDecorationBuilder
   extends DecorationBuilderStart,
@@ -112,6 +106,5 @@ export interface IDecorationBuilder
  * @param {object} target - The target object to resolve the flavour for
  * @return {string} The resolved flavour identifier
  * @memberOf module:decoration
- * @category Model
  */
 export type FlavourResolver = (target: object) => string;

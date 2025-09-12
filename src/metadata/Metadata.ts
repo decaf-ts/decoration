@@ -163,7 +163,7 @@ export class Metadata {
    * @summary Looks up the description stored under the metadata "description" map. If a property key is provided, returns the property's description; otherwise returns the class description.
    * @template M
    * @param {Constructor<M>} model The target constructor whose description is being retrieved
-   * @param {keyof M} [prop] Optional property key for which to fetch the description
+   * @param {string} [prop] Optional property key for which to fetch the description
    * @return {string|undefined} The description text if present, otherwise undefined
    */
   static description<M>(model: Constructor<M>, prop?: keyof M) {
@@ -192,13 +192,30 @@ export class Metadata {
    * @template M
    * @template META
    * @param {Constructor<M>} model The target constructor used to locate the metadata record
-   * @param {string} [key] Optional nested key path to fetch a specific value
-   * @return {META|*|undefined} The metadata object, the value at the key path, or undefined if nothing exists
+   * @return {META|undefined} The metadata object, the value at the key path, or undefined if nothing exists
    */
   static get<M, META extends BasicMetadata<M> = BasicMetadata<M>>(
     model: Constructor<M>
   ): META | undefined;
+  /**
+   * @description Retrieves metadata for a model or a specific key within it
+   * @summary When called with a constructor only, returns the entire metadata object associated with the model. When a key path is provided, returns the value stored at that nested key.
+   * @template M
+   * @template META
+   * @param {Constructor<M>} model The target constructor used to locate the metadata record
+   * @param {string} key nested key path to fetch a specific value
+   * @return {META|*|undefined} The metadata object, the value at the key path, or undefined if nothing exists
+   */
   static get(model: Constructor, key: string): any;
+  /**
+   * @description Retrieves metadata for a model or a specific key within it
+   * @summary When called with a constructor only, returns the entire metadata object associated with the model. When a key path is provided, returns the value stored at that nested key.
+   * @template M
+   * @template META
+   * @param {Constructor<M>} model The target constructor used to locate the metadata record
+   * @param {string} [key] Optional nested key path to fetch a specific value
+   * @return {META|*|undefined} The metadata object, the value at the key path, or undefined if nothing exists
+   */
   static get(model: Constructor, key?: string) {
     const symbol = Symbol.for(model.toString());
     if (!this._metadata[symbol]) return undefined;

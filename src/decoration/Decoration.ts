@@ -21,18 +21,46 @@ function defaultFlavourResolver(target: object) {
   return DefaultFlavour;
 }
 
+/**
+ * @description Union type covering supported decorator kinds
+ * @summary Represents any of the standard TypeScript decorator signatures (class, property, or method), enabling flexible registration and application within the Decoration system.
+ * @template T
+ * @typeDef DecoratorTypes
+ * @memberOf module:decoration
+ */
 export type DecoratorTypes =
   | ClassDecorator
   | PropertyDecorator
   | MethodDecorator;
 
+/**
+ * @description Type definition for a decorator factory function
+ * @summary Represents a function that accepts arbitrary arguments and returns a concrete decorator function to be applied to a target.
+ * @template A
+ * @typeDef DecoratorFactory
+ * @memberOf module:decoration
+ */
 export type DecoratorFactory = (...args: any[]) => DecoratorTypes;
 
+/**
+ * @description Argument bundle for a decorator factory
+ * @summary Object form used to defer decorator creation, carrying both the factory function and its argument list to be invoked later during application.
+ * @typeDef DecoratorFactoryArgs
+ * @property {DecoratorFactory} decorator The factory function that produces a decorator when invoked
+ * @property {any[]} [args] Optional list of arguments to pass to the decorator factory
+ * @memberOf module:decoration
+ */
 export type DecoratorFactoryArgs = {
   decorator: DecoratorFactory;
   args?: any[];
 };
 
+/**
+ * @description Union that represents either a ready-to-apply decorator or a factory with arguments
+ * @summary Allows registering decorators in two forms: as direct decorator functions or as deferred factories paired with their argument lists for later instantiation.
+ * @typeDef DecoratorData
+ * @memberOf module:decoration
+ */
 export type DecoratorData = DecoratorTypes | DecoratorFactoryArgs;
 /**
  * @description A decorator management class that handles flavoured decorators
@@ -43,7 +71,6 @@ export type DecoratorData = DecoratorTypes | DecoratorFactoryArgs;
  * @template T Type of the decorator (ClassDecorator | PropertyDecorator | MethodDecorator)
  * @param {string} [flavour] Optional flavour parameter for the decorator context
  * @class
- * @category Model
  * @example
  * ```typescript
  * // Create a new decoration for 'component' with default flavour
@@ -187,7 +214,22 @@ export class Decoration implements IDecorationBuilder {
    * decorators to apply at invocation time based on the target's resolved flavour and the registered base and extra decorators.
    * @param {string} key The decoration key used to look up registered decorators
    * @param {string} [f=DefaultFlavour] Optional explicit flavour to bind the factory to
-   * @return {(target: object, propertyKey?: any, descriptor?: TypedPropertyDescriptor<any)) => any} A decorator function that applies the resolved decorators
+   * @return {function(object, any, TypedPropertyDescriptor<any>): any} A decorator function that applies the resolved decorators
+   * @mermaid
+   * sequenceDiagram
+   *   participant U as User Code
+   *   participant B as Decoration (builder)
+   *   participant F as decoratorFactory(key, f)
+   *   participant R as flavourResolver
+   *   participant A as Applied Decorators
+   *   U->>B: define()/extend() and apply()
+   *   B->>F: create context decorator
+   *   F->>R: resolve(target)
+   *   R-->>F: flavour
+   *   F->>A: collect base + extras
+   *   loop each decorator
+   *     A->>U: invoke decorator(target, key?, desc?)
+   *   end
    */
   protected decoratorFactory(key: string, f: string = DefaultFlavour) {
     function contextDecorator(
@@ -335,6 +377,12 @@ export class Decoration implements IDecorationBuilder {
     return new Decoration().for(key);
   }
 
+  /**
+   * @description Starts a builder for a specific flavour
+   * @summary Convenience method to begin a Decoration builder chain bound to the given flavour identifier, allowing registration of flavour-specific decorators.
+   * @param {string} flavour The flavour name to bind to the builder
+   * @return {DecorationBuilderStart} A builder start interface to continue configuration
+   */
   static flavouredAs(flavour: string): DecorationBuilderStart {
     return new Decoration(flavour);
   }

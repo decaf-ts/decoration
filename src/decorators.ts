@@ -27,7 +27,7 @@ export function metadata(key: string, value: any) {
  * @summary Decorator factory that reads the reflected design:type for a property and registers it in the Metadata store under the properties map.
  * @return A decorator that records the property's type metadata when applied
  * @function prop
- * @category Decorators
+ * @category Property Decorators
  */
 export function prop() {
   return function prop(model: object, prop: any) {
@@ -91,7 +91,7 @@ export function apply(
  * @param {*} value The metadata value to associate with the key
  * @return A decorator that sets the metadata and captures the property's type
  * @function propMetadata
- * @category Decorators
+ * @category Property Decorators
  */
 export function propMetadata(key: string, value: any) {
   return apply(metadata(key, value), prop());
