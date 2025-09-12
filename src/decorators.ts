@@ -1,5 +1,5 @@
 import { Metadata } from "./metadata/Metadata";
-import { DecorationKeys } from "./constants";
+import { DecorationKeys, ObjectKeySplitter } from "./constants";
 
 /**
  * @description Assigns arbitrary metadata to a target using a string key
@@ -11,14 +11,14 @@ import { DecorationKeys } from "./constants";
  * @category Decorators
  */
 export function metadata(key: string, value: any) {
-  return function assign(
-    model: object,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  return function metadata(
+    model: any,
+
     prop?: any,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     descriptor?: PropertyDescriptor
   ) {
-    Metadata.set(model as any, key, value);
+    Metadata.set(prop ? model.constructor : model, key, value);
   };
 }
 
@@ -108,7 +108,10 @@ export function propMetadata(key: string, value: any) {
 export function description(desc: string) {
   return function description(original: any, prop: any, descriptor?: any) {
     return metadata(
-      `${DecorationKeys.DESCRIPTION}${prop ? `.${prop}` : ".class"}`,
+      [
+        DecorationKeys.DESCRIPTION,
+        prop ? prop.toString() : DecorationKeys.CLASS,
+      ].join(ObjectKeySplitter),
       desc
     )(original, prop, descriptor);
   };
