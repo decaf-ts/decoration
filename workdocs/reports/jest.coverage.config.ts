@@ -21,7 +21,7 @@ const config: Config.InitialOptions = {
         filename: "test-report.html",
         openReport: true,
         expand: true,
-        pageTitle: "ts-workspace Test Report",
+        pageTitle: "@decaf-ts/decoration's Test Report",
         stripSkippedTest: true,
         darkTheme: true,
         enableMergeData: true,
@@ -31,9 +31,9 @@ const config: Config.InitialOptions = {
   ],
   coverageThreshold: {
     global: {
-      branches: 60,
-      functions: 85,
-      lines: 80,
+      branches: 70,
+      functions: 93,
+      lines: 89,
       statements: 88,
     },
   },

@@ -11,19 +11,24 @@ import { DecorationKeys } from "../../src/constants";
 
 describe("decorators utilities", () => {
   it("metadata(key,value) should set value on class and property", () => {
-    class A {}
+    class A {
+      constructor() {}
+    }
     @metadata("x", 1)
-    class B {}
+    class B {
+      constructor() {}
+    }
 
-    expect(Metadata.get(A as any, "x")).toBeUndefined();
-    expect(Metadata.get(B as any, "x")).toBe(1);
+    expect(Metadata.get(A, "x")).toBeUndefined();
+    expect(Metadata.get(B, "x")).toBe(1);
 
     class C {
       @metadata("y", 2)
-      foo!: string;
+      foo: string = undefined;
+      constructor() {}
     }
 
-    expect(Metadata.get(C as any, "y")).toBe(2);
+    expect(Metadata.get(C, "y")).toBe(2);
   });
 
   it("prop() should record design type for property", () => {
@@ -43,22 +48,25 @@ describe("decorators utilities", () => {
       marks.push(`prop:${String(key)}`);
     };
     const dMethod: MethodDecorator = (_t, key, desc) => {
-      marks.push(`method:${String(key)}:${typeof desc}`);
+      marks.push(`method:${String(key)}:${typeof desc.value}`);
     };
 
     @apply(dClass)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     class K {
       @apply(dProp)
       p!: number;
 
       @apply(dMethod)
-      m() {}
+      m() {
+        console.log("m");
+      }
     }
 
     expect(marks).toEqual([
-      "class:K",
       "prop:p",
-      expect.stringMatching(/^method:m:/),
+      expect.stringMatching(/^method:m:function/),
+      "class:K",
     ]);
   });
 
@@ -72,11 +80,15 @@ describe("decorators utilities", () => {
   });
 
   it("description should set class and property descriptions", () => {
-    @(description("Class D") as unknown as ClassDecorator)
+    @description("Class D")
+    @metadata("x", 1)
     class D {
       @description("prop d")
-      a!: any;
+      a: any = undefined;
+      constructor() {}
     }
+
+    expect(Metadata.get(D as any, "x")).toBe(1);
     expect(Metadata.description(D as any)).toBe("Class D");
 
     // It stores as description.class and description.<prop>

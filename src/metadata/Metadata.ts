@@ -79,17 +79,25 @@ function setValueBySplitter(
   value: any,
   splitter = ObjectKeySplitter
 ): void {
-  const keys = path.split(splitter);
+  const keys = path.split(splitter).filter((k) => k.length > 0);
+  if (keys.length === 0) return;
+
   let current: Record<any, any> = obj;
 
-  for (const key of keys) {
-    if (!(key in current)) {
+  for (let i = 0; i < keys.length - 1; i++) {
+    const key = keys[i];
+    if (
+      current[key] === undefined ||
+      current[key] === null ||
+      typeof current[key] !== "object"
+    ) {
       current[key] = {};
     }
     current = current[key];
   }
 
-  current[keys[keys.length - 1]] = value;
+  const lastKey = keys[keys.length - 1];
+  current[lastKey] = value;
 }
 
 /**
@@ -113,31 +121,23 @@ function setValueBySplitter(
  *   C->>S: get(User, "properties.name")
  *   S-->>C: String
  */
-export class Metadata<
-  M = any,
-  META extends BasicMetadata<M> = BasicMetadata<M>,
-> {
-  /**
-   * @description Singleton instance holder
-   * @summary Stores the shared Metadata instance used by static helpers
-   */
-  private static _instance: Metadata;
+export class Metadata {
   /**
    * @description In-memory storage of metadata by constructor symbol
    * @summary Maps a Symbol derived from the constructor to its metadata object, enabling efficient lookup.
    */
-  private _metadata: Record<symbol, META> = {};
+  private static _metadata: Record<symbol, any> = {};
 
   /**
    * @description Path delimiter for nested metadata keys
    * @summary Used by get/set operations to navigate nested structures, defaults to ObjectKeySplitter.
    */
-  splitter = ObjectKeySplitter;
+  static splitter = ObjectKeySplitter;
   /**
    * @description Symbol key used to mirror metadata on the constructor
    * @summary When mirroring is enabled, the metadata object is defined on the constructor under this non-enumerable key.
    */
-  baseKey = DecorationKeys.REFLECT;
+  static baseKey = DecorationKeys.REFLECT;
   /**
    * @description Controls whether metadata is mirrored onto the constructor
    * @summary When true, the metadata object is defined on the constructor under the non-enumerable baseKey.
@@ -147,57 +147,91 @@ export class Metadata<
   private constructor() {}
 
   /**
-   * @description Accessor for the singleton Metadata instance
-   * @summary Lazily initializes and returns the shared Metadata instance used by all static methods.
-   * @return {Metadata} The singleton instance
-   */
-  static get instance() {
-    if (!this._instance) this._instance = new Metadata();
-    return this._instance;
-  }
-
-  /**
-   * @description Replaces the singleton Metadata instance
-   * @summary Allows swapping the default instance for testing or customization purposes.
-   * @param {Metadata} instance The new Metadata instance to use
-   */
-  static set instance(instance: Metadata) {
-    this._instance = instance;
-  }
-
-  /**
    * @description Lists known property keys for a model
    * @summary Reads the metadata entry and returns the names of properties that have recorded type information.
    * @param {Constructor} model The target constructor
    * @return {string[]|undefined} Array of property names or undefined if no metadata exists
    */
-  properties(model: Constructor) {
+  static properties(model: Constructor): string[] | undefined {
     const meta = this.get(model);
     if (!meta) return undefined;
     return Object.keys(meta.properties);
   }
 
-  description<M>(model: Constructor<M>, prop?: keyof M) {
+  /**
+   * @description Retrieves a human-readable description for a class or a property
+   * @summary Looks up the description stored under the metadata "description" map. If a property key is provided, returns the property's description; otherwise returns the class description.
+   * @template M
+   * @param {Constructor<M>} model The target constructor whose description is being retrieved
+   * @param {string} [prop] Optional property key for which to fetch the description
+   * @return {string|undefined} The description text if present, otherwise undefined
+   */
+  static description<M>(model: Constructor<M>, prop?: keyof M) {
     return this.get(
       model,
-      `${DecorationKeys.DESCRIPTION}${prop ? `.${prop.toString()}` : DecorationKeys.CLASS}`
+      [DecorationKeys.DESCRIPTION, prop ? prop : DecorationKeys.CLASS].join(
+        ObjectKeySplitter
+      )
     );
   }
 
-  type(model: Constructor, prop: string) {
+  /**
+   * @description Retrieves the recorded design type for a property
+   * @summary Reads the metadata entry under "properties.<prop>" to return the constructor recorded for the given property name.
+   * @param {Constructor} model The target constructor
+   * @param {string} prop The property name whose type should be returned
+   * @return {Constructor|undefined} The constructor reference of the property type or undefined if not available
+   */
+  static type(model: Constructor, prop: string) {
     return this.get(model, `${DecorationKeys.PROPERTIES}.${prop}`);
   }
 
-  get<M>(model: Constructor<M>): META | undefined;
-  get(model: Constructor, key: string): any;
-  get(model: Constructor, key?: string) {
+  /**
+   * @description Retrieves metadata for a model or a specific key within it
+   * @summary When called with a constructor only, returns the entire metadata object associated with the model. When a key path is provided, returns the value stored at that nested key.
+   * @template M
+   * @template META
+   * @param {Constructor<M>} model The target constructor used to locate the metadata record
+   * @return {META|undefined} The metadata object, the value at the key path, or undefined if nothing exists
+   */
+  static get<M, META extends BasicMetadata<M> = BasicMetadata<M>>(
+    model: Constructor<M>
+  ): META | undefined;
+  /**
+   * @description Retrieves metadata for a model or a specific key within it
+   * @summary When called with a constructor only, returns the entire metadata object associated with the model. When a key path is provided, returns the value stored at that nested key.
+   * @template M
+   * @template META
+   * @param {Constructor<M>} model The target constructor used to locate the metadata record
+   * @param {string} key nested key path to fetch a specific value
+   * @return {META|*|undefined} The metadata object, the value at the key path, or undefined if nothing exists
+   */
+  static get(model: Constructor, key: string): any;
+  /**
+   * @description Retrieves metadata for a model or a specific key within it
+   * @summary When called with a constructor only, returns the entire metadata object associated with the model. When a key path is provided, returns the value stored at that nested key.
+   * @template M
+   * @template META
+   * @param {Constructor<M>} model The target constructor used to locate the metadata record
+   * @param {string} [key] Optional nested key path to fetch a specific value
+   * @return {META|*|undefined} The metadata object, the value at the key path, or undefined if nothing exists
+   */
+  static get(model: Constructor, key?: string) {
     const symbol = Symbol.for(model.toString());
     if (!this._metadata[symbol]) return undefined;
     if (!key) return this._metadata[symbol];
     return getValueBySplitter(this._metadata[symbol], key, this.splitter);
   }
 
-  set(model: Constructor, key: string, value: any) {
+  /**
+   * @description Writes a metadata value at a given nested key path
+   * @summary Ensures the metadata record exists for the constructor, mirrors it on the constructor when enabled, and sets the provided value on the nested key path using the configured splitter.
+   * @param {Constructor} model The target constructor to which the metadata belongs
+   * @param {string} key The nested key path at which to store the value
+   * @param {*} value The value to store in the metadata
+   * @return {void}
+   */
+  static set(model: Constructor, key: string, value: any) {
     const symbol = Symbol.for(model.toString());
     if (!this._metadata[symbol]) this._metadata[symbol] = {} as any;
     if (
@@ -212,29 +246,5 @@ export class Metadata<
       });
     }
     setValueBySplitter(this._metadata[symbol], key, value, this.splitter);
-  }
-
-  static properties(model: Constructor) {
-    return this.instance.properties(model);
-  }
-
-  static description<M>(model: Constructor, prop?: keyof M) {
-    return this.instance.description(model, prop);
-  }
-
-  static type(model: Constructor, prop: string) {
-    return this.instance.type(model, prop);
-  }
-
-  static get<M, META extends BasicMetadata<M> = BasicMetadata<M>>(
-    model: Constructor<M>
-  ): META | undefined;
-  static get(model: Constructor, key: string): any;
-  static get(model: Constructor, key?: string) {
-    return this.instance.get(model, key as any);
-  }
-
-  static set(model: Constructor, key: string, value: any) {
-    return this.instance.set(model, key, value);
   }
 }
