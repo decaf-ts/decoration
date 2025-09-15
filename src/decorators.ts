@@ -43,6 +43,31 @@ export function prop() {
   };
 }
 
+export function method() {
+  return function method(obj: any, prop: any, descriptor: any) {
+    const designParams = Reflect.getOwnMetadata(
+      DecorationKeys.DESIGN_PARAMS,
+      obj,
+      prop
+    );
+    const designReturn = Reflect.getOwnMetadata(
+      DecorationKeys.DESIGN_RETURN,
+      obj,
+      prop
+    );
+    return apply(
+      metadata(
+        `${DecorationKeys.METHODS}.${prop}.${DecorationKeys.DESIGN_PARAMS}`,
+        designParams
+      ),
+      metadata(
+        `${DecorationKeys.METHODS}.${prop}.${DecorationKeys.DESIGN_RETURN}`,
+        designReturn
+      )
+    )(obj, prop, descriptor);
+  };
+}
+
 /**
  * @description Decorator factory that applies multiple decorators to a single target
  * @summary Creates a composite decorator that applies multiple decorators in sequence, correctly handling class, method, and property decorators.

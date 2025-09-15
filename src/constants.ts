@@ -28,10 +28,13 @@ export const ObjectKeySplitter = ".";
  * @memberOf module:decoration
  */
 export enum DecorationKeys {
+  LIBRARIES = "libraries",
   /** Storage key used on the constructor to mirror runtime metadata */
   REFLECT = `__${DefaultFlavour}`,
   /** Map of model property keys to their reflected design types */
   PROPERTIES = "properties",
+  /** Map of model method keys to their reflected design params and return types */
+  METHODS = "methods",
   /** Key under which the model's constructor is stored */
   CLASS = "class",
   /** Container of human-friendly descriptions per class and property */

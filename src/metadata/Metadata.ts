@@ -166,7 +166,10 @@ export class Metadata {
    * @param {string} [prop] Optional property key for which to fetch the description
    * @return {string|undefined} The description text if present, otherwise undefined
    */
-  static description<M>(model: Constructor<M>, prop?: keyof M) {
+  static description<M>(
+    model: Constructor<M>,
+    prop?: keyof M
+  ): string | undefined {
     return this.get(
       model,
       [DecorationKeys.DESCRIPTION, prop ? prop : DecorationKeys.CLASS].join(
@@ -212,28 +215,38 @@ export class Metadata {
    * @summary When called with a constructor only, returns the entire metadata object associated with the model. When a key path is provided, returns the value stored at that nested key.
    * @template M
    * @template META
-   * @param {Constructor<M>} model The target constructor used to locate the metadata record
+   * @param {Constructor<M> | string} model The target constructor used to locate the metadata record
    * @param {string} [key] Optional nested key path to fetch a specific value
    * @return {META|*|undefined} The metadata object, the value at the key path, or undefined if nothing exists
    */
   static get(model: Constructor, key?: string) {
     const symbol = Symbol.for(model.toString());
+    return this.innerGet(symbol, key);
+  }
+
+  private static innerGet(symbol: symbol, key?: string) {
     if (!this._metadata[symbol]) return undefined;
     if (!key) return this._metadata[symbol];
     return getValueBySplitter(this._metadata[symbol], key, this.splitter);
   }
 
+  private static innerSet(symbol: symbol, key: string, value: any) {
+    if (!this._metadata[symbol]) this._metadata[symbol] = {} as any;
+    setValueBySplitter(this._metadata[symbol], key, value, this.splitter);
+  }
+
   /**
    * @description Writes a metadata value at a given nested key path
    * @summary Ensures the metadata record exists for the constructor, mirrors it on the constructor when enabled, and sets the provided value on the nested key path using the configured splitter.
-   * @param {Constructor} model The target constructor to which the metadata belongs
+   * @template M
+   * @param {Constructor<M> | string} model The target constructor to which the metadata belongs
    * @param {string} key The nested key path at which to store the value
    * @param {*} value The value to store in the metadata
    * @return {void}
    */
-  static set(model: Constructor, key: string, value: any) {
+  static set(model: Constructor | string, key: string, value: any) {
     const symbol = Symbol.for(model.toString());
-    if (!this._metadata[symbol]) this._metadata[symbol] = {} as any;
+    this.innerSet(symbol, key, value);
     if (
       Metadata.mirror &&
       !Object.prototype.hasOwnProperty.call(model, this.baseKey)
@@ -245,6 +258,15 @@ export class Metadata {
         value: this._metadata[symbol],
       });
     }
-    setValueBySplitter(this._metadata[symbol], key, value, this.splitter);
+  }
+
+  static registerLibrary(library: string, version: string) {
+    const symbol = Symbol.for(DecorationKeys.LIBRARIES);
+    const lib = this.innerGet(symbol, library);
+    if (lib)
+      throw new Error(
+        `Library already ${library} registered with version ${version}`
+      );
+    this.innerSet(symbol, library, version);
   }
 }

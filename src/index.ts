@@ -9,6 +9,8 @@
  * @module decoration
  */
 
+import { Metadata } from "./metadata/index";
+
 export * from "./decoration";
 export * from "./metadata";
 export * from "./constants";
@@ -21,3 +23,5 @@ export * from "./decorators";
  * @memberOf module:decoration
  */
 export const VERSION = "##VERSION##";
+
+Metadata.registerLibrary("@decaf-ts/decoration", VERSION);
