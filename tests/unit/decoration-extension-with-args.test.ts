@@ -1,4 +1,4 @@
-import { Decoration, propMetadata } from "../../src";
+import { Decoration, propMetadata } from "../../src/index";
 
 export const Reporter = {
   f1: jest.fn(),
@@ -40,10 +40,11 @@ function report2(name: string, data: any) {
   return report2;
 }
 
-function f1() {
+function f1(str: string, obj: object) {
   return Decoration.for("f1")
     .define({
       decorator: report,
+      args: [str, obj],
     })
     .apply();
 }
@@ -78,9 +79,9 @@ describe("dynamic class decoration - extends with args", () => {
       constructor() {}
     }
 
-    expect(Reporter.f1).toHaveBeenCalledTimes(1);
-    expect(Reporter.f1).toHaveBeenCalledWith("f2", {});
-    expect(Reporter.f2).toHaveBeenCalledTimes(0);
+    expect(Reporter.f2).toHaveBeenCalledTimes(1);
+    expect(Reporter.f2).toHaveBeenCalledWith("f2", {});
+    expect(Reporter.f1).toHaveBeenCalledTimes(0);
     expect(Reporter2.f1).toHaveBeenCalledTimes(0);
     expect(Reporter2.f2).toHaveBeenCalledTimes(1);
     expect(Reporter2.f2).toHaveBeenCalledWith("f2", {});

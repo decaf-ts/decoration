@@ -195,6 +195,13 @@ export class Decoration implements IDecorationBuilder {
   define(
     ...decorators: DecoratorData[]
   ): DecorationBuilderEnd & DecorationBuilderBuild {
+    if (
+      decorators.find((d) => typeof d === "object") &&
+      decorators.length !== 1
+    )
+      throw new Error(
+        `When using an overridable decorator, only one is allowed`
+      );
     return this.decorate(false, ...decorators);
   }
 
@@ -205,6 +212,13 @@ export class Decoration implements IDecorationBuilder {
    * @return {DecorationBuilderBuild} Builder instance for building the decorator
    */
   extend(...decorators: DecoratorData[]): DecorationBuilderBuild {
+    if (
+      decorators.find((d) => typeof d === "object") &&
+      decorators.length !== 1
+    )
+      throw new Error(
+        `When extending using an overridable decorator, only one is allowed`
+      );
     return this.decorate(true, ...decorators);
   }
 
@@ -243,14 +257,6 @@ export class Decoration implements IDecorationBuilder {
       const extras = cache[flavour]
         ? cache[flavour].extras
         : cache[DefaultFlavour].extras;
-      const extraArgs = [
-        ...((cache[DefaultFlavour] as any).extras
-          ? (cache[DefaultFlavour] as any).extras.values()
-          : []),
-      ].reduce((accum: Record<number, any>, e, i) => {
-        if (e.args) accum[i] = e.args;
-        return accum;
-      }, {});
 
       if (
         cache &&
@@ -279,18 +285,11 @@ export class Decoration implements IDecorationBuilder {
         (_, d, i) => {
           switch (typeof d) {
             case "object": {
-              const { decorator, args } = d as DecoratorFactoryArgs;
-              const argz =
-                args || i < (decorators ? decorators.size : 0)
-                  ? decoratorArgs[i]
-                  : extraArgs[i - (decorators ? decorators.size : 0)] ||
-                    (decorators ? decoratorArgs[i - decorators.size] : []);
+              const { decorator } = d as DecoratorFactoryArgs;
 
-              return (decorator(...(argz || [])) as any)(
-                target,
-                propertyKey,
-                descriptor
-              );
+              return (
+                decorator(...(Object.values(decoratorArgs)[0] || [])) as any
+              )(target, propertyKey, descriptor);
             }
             case "function":
               return (d as any)(target, propertyKey, descriptor);
