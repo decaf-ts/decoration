@@ -13,7 +13,7 @@ export const Reporter2 = {
 function report(name: string, data: any) {
   function report(object: any, attr: any, descriptor: any) {
     try {
-      Reporter[name]();
+      Reporter[name](name, data);
     } catch (e: unknown) {
       console.log(e);
     }
@@ -28,7 +28,7 @@ function report(name: string, data: any) {
 function report2(name: string, data: any) {
   function report2(object: any, attr: any, descriptor: any) {
     try {
-      Reporter2[name]();
+      Reporter2[name](name, data);
     } catch (e: unknown) {
       console.log(e);
     }
@@ -44,16 +44,15 @@ function f1() {
   return Decoration.for("f1")
     .define({
       decorator: report,
-      args: ["f1", {}],
     })
     .apply();
 }
 
-function f2() {
+function f2(str: string, obj: object) {
   return Decoration.for("f2")
     .define({
       decorator: report2,
-      args: ["f2", {}],
+      args: [str, obj],
     })
     .apply();
 }
@@ -73,7 +72,7 @@ describe("dynamic class decoration - extends with args", () => {
 
   it("manages self arguments in decorator extends", () => {
     class ArgExtendsTestModel {
-      @f2()
+      @f2("f2", {})
       arg!: string;
 
       constructor() {}
