@@ -28,7 +28,7 @@ function report(name: string, data: any) {
 function report2(name: string, data: any) {
   function report2(object: any, attr: any, descriptor: any) {
     try {
-      Reporter2[name]();
+      Reporter2[name](name, data);
     } catch (e: unknown) {
       console.log(e);
     }
@@ -68,6 +68,7 @@ describe("dynamic class decoration - override with args", () => {
   });
 
   it("manages self arguments in decorator override", () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     class ArgOverrideTestModel {
       @f1()
       arg!: string;
@@ -78,6 +79,7 @@ describe("dynamic class decoration - override with args", () => {
     expect(Reporter.f1).toHaveBeenCalledTimes(0);
     expect(Reporter.f2).toHaveBeenCalledTimes(0);
     expect(Reporter2.f1).toHaveBeenCalledTimes(1);
+    expect(Reporter2.f1).toHaveBeenCalledWith("f1", {});
     expect(Reporter2.f2).toHaveBeenCalledTimes(0);
   });
 });

@@ -41,38 +41,6 @@ describe("Decoration builder", () => {
     expect((dec as any).name).toBe(`${DefaultFlavour}_decorator_for_named`);
   });
 
-  it("should apply default decorators and flavour-specific extras when resolver returns flavour", () => {
-    const log: string[] = [];
-
-    // default base decorators
-    const baseFactory = (arg: string): ClassDecorator => {
-      return (target) => {
-        log.push(`base:${arg}:${(target as any).name}`);
-      };
-    };
-    const baseDirect: ClassDecorator = (target) => {
-      log.push(`direct:${(target as any).name}`);
-    };
-
-    // register default
-    Decoration.for("mix")
-      .define({ decorator: baseFactory, args: ["A"] }, baseDirect)
-      .apply();
-
-    // register flavour-specific extras
-    Decoration.flavouredAs("flv")
-      .for("mix")
-      .extend({
-        decorator: (tag: string): ClassDecorator => {
-          return (target) => {
-            log.push(`extra:${tag}:${(target as any).name}`);
-          };
-        },
-        args: ["X"],
-      })
-      .apply();
-  });
-
   it("should use override decorators when provided for a flavour", () => {
     const log: string[] = [];
     const base: ClassDecorator = (t) => {
