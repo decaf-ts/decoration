@@ -47,12 +47,12 @@ export type DecoratorFactory = (...args: any[]) => DecoratorTypes;
  * @summary Object form used to defer decorator creation, carrying both the factory function and its argument list to be invoked later during application.
  * @typeDef DecoratorFactoryArgs
  * @property {DecoratorFactory} decorator The factory function that produces a decorator when invoked
- * @property {any[]} [args] Optional list of arguments to pass to the decorator factory
+ * @property {any[]} args list of arguments to pass to the decorator factory
  * @memberOf module:decoration
  */
 export type DecoratorFactoryArgs = {
   decorator: DecoratorFactory;
-  args?: any[];
+  args: any[];
 };
 
 /**
