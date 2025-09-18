@@ -61,6 +61,7 @@ Decoration.setFlavourResolver(() => {
 Decoration.flavouredAs(flavour).for("f4").define(f1()).apply();
 
 @f4()
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 class ConstructionDecoration2 {
   constructor() {}
 }
@@ -78,6 +79,7 @@ describe("dynamic class decoration - override", () => {
   });
 
   it("manages self arguments in decorator override", () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     class ArgOverrideTestMode {
       @f5()
       arg!: string;

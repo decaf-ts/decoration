@@ -1,4 +1,4 @@
-import { Decoration, propMetadata } from "../../src";
+import { Decoration, propMetadata } from "../../src/index";
 
 export const Reporter = {
   f1: jest.fn(),
@@ -13,7 +13,7 @@ export const Reporter2 = {
 function report(name: string, data: any) {
   function report(object: any, attr: any, descriptor: any) {
     try {
-      Reporter[name]();
+      Reporter[name](name, data);
     } catch (e: unknown) {
       console.log(e);
     }
@@ -40,11 +40,20 @@ function report2(name: string, data: any) {
   return report2;
 }
 
-function f1() {
+function f1(str: string, obj: object) {
   return Decoration.for("f1")
     .define({
       decorator: report,
-      args: ["f1", {}],
+      args: [str, obj],
+    })
+    .apply();
+}
+
+function f2(str: string, obj: object) {
+  return Decoration.for("f2")
+    .define({
+      decorator: report2,
+      args: [str, obj],
     })
     .apply();
 }
@@ -55,31 +64,27 @@ Decoration.setFlavourResolver(() => {
   return flavour;
 });
 
-Decoration.flavouredAs(flavour)
-  .for("f1")
-  .define({
-    decorator: report2,
-  })
-  .apply();
+Decoration.flavouredAs(flavour).for("f2").extend({ decorator: f1 }).apply();
 
-describe("dynamic class decoration - override with args", () => {
+describe("dynamic class decoration - extends with args", () => {
   afterAll(() => {
     jest.clearAllMocks();
   });
 
-  it("manages self arguments in decorator override", () => {
+  it("manages self arguments in decorator extends", () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    class ArgOverrideTestModel {
-      @f1()
+    class ArgExtendsTestModel {
+      @f2("f2", {})
       arg!: string;
 
       constructor() {}
     }
 
+    expect(Reporter.f2).toHaveBeenCalledTimes(1);
+    expect(Reporter.f2).toHaveBeenCalledWith("f2", {});
     expect(Reporter.f1).toHaveBeenCalledTimes(0);
-    expect(Reporter.f2).toHaveBeenCalledTimes(0);
-    expect(Reporter2.f1).toHaveBeenCalledTimes(1);
-    expect(Reporter2.f1).toHaveBeenCalledWith("f1", {});
-    expect(Reporter2.f2).toHaveBeenCalledTimes(0);
+    expect(Reporter2.f1).toHaveBeenCalledTimes(0);
+    expect(Reporter2.f2).toHaveBeenCalledTimes(1);
+    expect(Reporter2.f2).toHaveBeenCalledWith("f2", {});
   });
 });
