@@ -72,6 +72,7 @@ describe("dynamic class decoration - extends with args", () => {
   });
 
   it("manages self arguments in decorator extends", () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     class ArgExtendsTestModel {
       @f2("f2", {})
       arg!: string;

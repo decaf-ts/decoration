@@ -282,7 +282,7 @@ export class Decoration implements IDecorationBuilder {
       ];
 
       return toApply.reduce(
-        (_, d, i) => {
+        (_, d) => {
           switch (typeof d) {
             case "object": {
               const { decorator } = d as DecoratorFactoryArgs;
