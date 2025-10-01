@@ -26,7 +26,7 @@ import "reflect-metadata";
  *   F-->>C: return final value
  * @memberOf module:decoration
  */
-function getValueBySplitter(
+export function getValueBySplitter(
   obj: Record<string, any>,
   path: string,
   splitter: string = ObjectKeySplitter
@@ -73,7 +73,7 @@ function getValueBySplitter(
  *   F-->>C: void
  * @memberOf module:decoration
  */
-function setValueBySplitter(
+export function setValueBySplitter(
   obj: Record<string, any>,
   path: string,
   value: any,
