@@ -131,7 +131,7 @@ export function propMetadata(key: string, value: any) {
  * @category Decorators
  */
 export function description(desc: string) {
-  return function description(original: any, prop: any, descriptor?: any) {
+  return function description(original: any, prop?: any, descriptor?: any) {
     return metadata(
       [
         DecorationKeys.DESCRIPTION,
