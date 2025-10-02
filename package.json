@@ -1,6 +1,6 @@
 {
   "name": "@decaf-ts/decoration",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Decoration and metadata mechanisms for decaf-ts",
   "type": "module",
   "exports": {
