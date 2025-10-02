@@ -1,3 +1,9 @@
+/**
+ * @file constants.ts
+ * @description Shared constants and enums leveraged by the decoration package.
+ * @summary Defines flavour fallbacks, key splitters, metadata keys, and default metadata structures consumed by builder and metadata utilities.
+ */
+
 import { BasicMetadata } from "./metadata/types";
 
 /**
@@ -39,6 +45,8 @@ export enum DecorationKeys {
   CLASS = "class",
   /** Container of human-friendly descriptions per class and property */
   DESCRIPTION = "description",
+  /** Holds the original constructor - for constructor override**/
+  CONSTRUCTOR = "constructor",
   /** Reflect metadata key for design time type of a property */
   DESIGN_TYPE = "design:type",
   /** Reflect metadata key for constructor parameter types */
