@@ -1,9 +1,3 @@
-/**
- * @file constants.ts
- * @description Shared constants and enums leveraged by the decoration package.
- * @summary Defines flavour fallbacks, key splitters, metadata keys, and default metadata structures consumed by builder and metadata utilities.
- */
-
 import { BasicMetadata } from "./metadata/types";
 
 /**
@@ -56,18 +50,8 @@ export enum DecorationKeys {
 }
 
 /**
- * @description Typedef for the default metadata object shape
- * @summary Describes the minimal structure persisted for a model before any metadata is recorded.
- * @template M
- * @typedef {object} DefaultMetadataType<M>
- * @property {Record<string, Constructor | undefined>} properties - Mapping of property names to their design types
- * @memberOf module:decoration
- */
-
-/**
  * @description Default metadata instance
  * @summary Concrete default metadata object used when initializing metadata for a model
- * @type {DefaultMetadataType<any>}
  * @const DefaultMetadata
  * @memberOf module:decoration
  */

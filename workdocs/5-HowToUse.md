@@ -1,174 +1,185 @@
 # How to Use
 
-This guide shows practical examples for all main elements of @decaf-ts/decoration. Each example includes a short description and a TypeScript snippet.
+Practical examples for every exported surface of **@decaf-ts/decoration**. All snippets are TypeScript and mirror the behaviour covered by the unit and integration tests.
 
-Prerequisites
+## Prerequisites
 
-- Enable experimental decorators and emit decorator metadata in tsconfig.json:
+- Enable experimental decorators and decorator metadata in `tsconfig.json`:
 
-```json
-{
-  "compilerOptions": {
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+  ```json
+  {
+    "compilerOptions": {
+      "experimentalDecorators": true,
+      "emitDecoratorMetadata": true
+    }
   }
-}
-```
+  ```
 
-- Import reflect-metadata once in your test/app entry:
+- Import `reflect-metadata` once (before decorators execute):
 
-```ts
-import "reflect-metadata";
-```
+  ```ts
+  import "reflect-metadata";
+  ```
 
-Decoration class
+## Decoration Builder
 
-1) Define base decorators for the default flavour ("decaf")
+The `Decoration` class exposes a fluent builder that lets you define base decorators, add flavour-specific extras, or override behaviour entirely.
 
-Description: Create a decoration pipeline for key "component" that applies two decorators to any class.
-
-```ts
-import { Decoration } from "@decaf-ts/decoration";
-
-// A simple class decorator factory (just logs)
-const logFactory = (tag: string): ClassDecorator => (target) => {
-  console.log(`[${tag}]`, (target as any).name);
-};
-const mark: ClassDecorator = (t) => {
-  (t as any).__mark = true;
-};
-
-// Register base decorators for the default flavour
-const component = Decoration.for("component")
-  .define({ decorator: logFactory, args: ["base"] }, mark)
-  .apply();
-
-// Use it
-@component
-class MyComponent {}
-```
-
-2) Extend base decorators with flavour-specific extras
-
-Description: Provide extra behavior when the runtime flavour is resolved to "web" while keeping default base decorators.
+### 1. Register base decorators for the default flavour
 
 ```ts
 import { Decoration } from "@decaf-ts/decoration";
 
-// Default base
-Decoration.for("component")
-  .define(((t: any) => t) as ClassDecorator)
-  .apply();
+const markAsComponent: ClassDecorator = (target) => {
+  (target as any).__isComponent = true;
+};
 
-// Flavour-specific extras
-Decoration.flavouredAs("web")
-  .for("component")
-  .extend({
-    decorator: (tag: string): ClassDecorator => (target) => {
-      (target as any).__platform = tag;
-    },
-    args: ["web"],
-  })
-  .apply();
+const tagFactory = (tag: string): ClassDecorator => (target) => {
+  (target as any).__tag = tag;
+};
 
-// Choose flavour at runtime
+const component = () =>
+  Decoration.for("component")
+    .define({ decorator: tagFactory, args: ["base"] }, markAsComponent)
+    .apply();
+
+@component()
+class DefaultComponent {}
+
+(DefaultComponent as any).__isComponent; // true
+(DefaultComponent as any).__tag; // "base"
+```
+
+### 2. Extend base decorators with flavour-specific extras
+
+```ts
+// Register the same base behaviour as above.
+const baseComponent = () =>
+  Decoration.for("component")
+    .define(((target: any) => target) as ClassDecorator)
+    .apply();
+
+@baseComponent()
+class BaseComponent {}
+
 Decoration.setFlavourResolver(() => "web");
 
-const dec = Decoration.flavouredAs("web").for("component").apply();
+const decorate = () =>
+  Decoration.flavouredAs("web")
+    .for("component")
+    .extend({
+      decorator: (platform: string): ClassDecorator => (target) => {
+        (target as any).__platform = platform;
+      },
+      args: ["web"],
+    })
+    .apply();
 
-@dec
+@decorate()
 class WebComponent {}
 
-console.log((WebComponent as any).__platform); // "web"
+(WebComponent as any).__platform; // "web"
 ```
 
-3) Override base decorators for a specific flavour
-
-Description: Replace default decorators entirely for flavour "mobile".
+### 3. Override decorators for an alternate flavour
 
 ```ts
-import { Decoration } from "@decaf-ts/decoration";
+const base = () =>
+  Decoration.for("component")
+    .define(((target: any) => {
+      (target as any).__base = true;
+    }) as ClassDecorator)
+    .apply();
 
-// Default base
-Decoration.for("component")
-  .define(((t: any) => { (t as any).__base = true; }) as ClassDecorator)
-  .apply();
-
-// Flavour override (no extras needed)
-Decoration.flavouredAs("mobile")
-  .for("component")
-  .define(((t: any) => { (t as any).__mobile = true; }) as ClassDecorator)
-  .apply();
+@base()
+class BaseBehaviour {}
 
 Decoration.setFlavourResolver(() => "mobile");
-const dec = Decoration.flavouredAs("mobile").for("component").apply();
 
-@dec()
+const mobileComponent = () =>
+  Decoration.flavouredAs("mobile")
+    .for("component")
+    .define(((target: any) => {
+      (target as any).__mobile = true;
+    }) as ClassDecorator)
+    .apply();
+
+@mobileComponent()
 class MobileComponent {}
 
-console.log((MobileComponent as any).__base);   // undefined (overridden)
-console.log((MobileComponent as any).__mobile); // true
+(MobileComponent as any).__base; // undefined – overridden
+(MobileComponent as any).__mobile; // true
 ```
 
-Decorator utilities
+### 4. Enforce builder guard rails
 
-1) metadata(key, value)
+The builder throws when misused; tests assert these guards and you can rely on them in your own code.
 
-Description: Attach arbitrary metadata to a class or property.
+```ts
+const base = Decoration.for("guarded");
+
+// Missing key before define/extend
+expect(() => (new Decoration() as any).define(() => () => undefined)).toThrow();
+
+// Multiple overridable decorators are rejected
+const overridable = {
+  decorator: (() => ((target: any) => target)) as any,
+  args: [],
+};
+expect(() => base.define(overridable as any, overridable as any)).toThrow();
+
+// Extending the default flavour is blocked
+expect(() => Decoration.for("guarded").extend(((t: any) => t) as any)).toThrow();
+```
+
+## Decorator Utilities
+
+Helper factories under `@decaf-ts/decoration` push metadata into the shared store.
+
+### metadata(key, value)
 
 ```ts
 import { metadata, Metadata } from "@decaf-ts/decoration";
 
 @metadata("role", "entity")
-class User {
-  @((metadata("format", "email") as unknown) as PropertyDecorator)
-  email!: string;
-}
+class User {}
 
-console.log(Metadata.get(User, "role")); // "entity"
-console.log(Metadata.get(User, "format")); // "email"
+Metadata.get(User, "role"); // "entity"
 ```
 
-2) prop()
-
-Description: Record the reflected design type for a property.
+### prop()
 
 ```ts
-import "reflect-metadata";
 import { prop, Metadata } from "@decaf-ts/decoration";
 
 class Article {
-  @((prop() as unknown) as PropertyDecorator)
+  @prop()
   title!: string;
 }
 
-console.log(Metadata.type(Article, "title") === String); // true
+Metadata.type(Article, "title") === String; // true
 ```
 
-3) apply(...decorators)
-
-Description: Compose multiple decorators of different kinds.
+### apply(...decorators)
 
 ```ts
 import { apply } from "@decaf-ts/decoration";
 
-const dClass: ClassDecorator = (t) => console.log("class", (t as any).name);
-const dProp: PropertyDecorator = (_t, key) => console.log("prop", String(key));
-const dMethod: MethodDecorator = (_t, key) => console.log("method", String(key));
+const logClass: ClassDecorator = (target) => {
+  console.log("class", (target as any).name);
+};
 
-@apply(dClass)
+const withLogging = () => apply(logClass);
+const logProperty = () => apply((_, key) => console.log("prop", String(key)));
+
+@withLogging()
 class Box {
-  @((apply(dProp) as unknown) as PropertyDecorator)
+  @logProperty()
   size!: number;
-
-  @((apply(dMethod) as unknown) as MethodDecorator)
-  open() {}
 }
 ```
 
-4) propMetadata(key, value)
-
-Description: Combine setting arbitrary metadata and capturing the property's design type.
+### propMetadata(key, value)
 
 ```ts
 import { propMetadata, Metadata } from "@decaf-ts/decoration";
@@ -178,13 +189,11 @@ class Product {
   price!: number;
 }
 
-console.log(Metadata.get(Product, "column")); // "price"
-console.log(Metadata.type(Product, "price") === Number); // true
+Metadata.get(Product, "column"); // "price"
+Metadata.type(Product, "price") === Number; // true
 ```
 
-5) description(text)
-
-Description: Store human-readable documentation for class and property.
+### description(text)
 
 ```ts
 import { description, Metadata } from "@decaf-ts/decoration";
@@ -195,9 +204,92 @@ class User {
   email!: string;
 }
 
-console.log(Metadata.description(User)); // "User entity"
-console.log(Metadata.description<User>(User, "email" as any)); // "Primary email address"
+Metadata.description(User); // "User entity"
+Metadata.description<User>(User, "email" as keyof User); // "Primary email address"
 ```
+
+## Metadata Runtime Helpers
+
+`Metadata` centralises all recorded information. The snippets below exercise the same flows as `metadata.test.ts` and the integration suite.
+
+### Set and read nested values with constructor mirroring
+
+```ts
+import { Metadata, DecorationKeys } from "@decaf-ts/decoration";
+
+class Person {
+  name!: string;
+}
+
+Metadata.set(Person, `${DecorationKeys.DESCRIPTION}.class`, "Person model");
+Metadata.set(Person, `${DecorationKeys.PROPERTIES}.name`, String);
+
+Metadata.description(Person); // "Person model"
+Metadata.properties(Person); // ["name"]
+
+const mirror = Object.getOwnPropertyDescriptor(Person, DecorationKeys.REFLECT);
+mirror?.enumerable; // false
+```
+
+### Opt out of mirroring
+
+```ts
+(Metadata as any).mirror = false;
+
+Metadata.set(Person, `${DecorationKeys.DESCRIPTION}.class`, "No mirror");
+Object.getOwnPropertyDescriptor(Person, DecorationKeys.REFLECT); // undefined
+
+(Metadata as any).mirror = true; // reset when you are done
+```
+
+### Work with method metadata
+
+```ts
+class Service {
+  get(): string {
+    return "value";
+  }
+}
+
+Metadata.set(
+  Service,
+  `${DecorationKeys.METHODS}.get.${DecorationKeys.DESIGN_PARAMS}`,
+  []
+);
+Metadata.set(
+  Service,
+  `${DecorationKeys.METHODS}.get.${DecorationKeys.DESIGN_RETURN}`,
+  String
+);
+
+Metadata.methods(Service); // ["get"]
+Metadata.params(Service, "get"); // []
+Metadata.return(Service, "get") === String; // true
+```
+
+### Leverage convenience accessors
+
+```ts
+Metadata.type(Person, "name"); // Reflects design type recorded by @prop()
+Metadata.get(Person); // Full metadata payload for advanced inspection
+Metadata.get(Person, DecorationKeys.CONSTRUCTOR); // Underlying constructor reference
+```
+
+## Library Registration
+
+Prevent duplicate registration of flavour libraries via `Metadata.registerLibrary`.
+
+```ts
+import { Metadata } from "@decaf-ts/decoration";
+
+Metadata.registerLibrary("@decaf-ts/decoration", "0.0.6");
+
+expect(() =>
+  Metadata.registerLibrary("@decaf-ts/decoration", "0.0.6")
+).toThrow(/already/);
+```
+
+You now have end-to-end examples for every public API: builder setup, decorator helpers, metadata management, and library bookkeeping. Mirror the test suite for additional inspiration when adding new patterns.
 
 Metadata class
 
