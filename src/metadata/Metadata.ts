@@ -160,7 +160,7 @@ export class Metadata {
 
   /**
    * @description Lists known methods for a model
-   * @summary Reads the metadata entry and returns the names of models that have recorded type information.
+   * @summary Reads the metadata entry and returns the method names that have recorded signature metadata for the provided constructor.
    * @param {Constructor} model The target constructor
    * @return {string[]|undefined} Array of property names or undefined if no metadata exists
    */
@@ -237,6 +237,18 @@ export class Metadata {
   }
 
   /**
+   * @description Resolves the canonical constructor associated with the provided model handle
+   * @summary Returns the stored constructor reference when the provided model is a proxy or reduced value. Falls back to the
+   * original model when no constructor metadata has been recorded yet.
+   * @template M
+   * @param {Constructor<M>} model The model used when recording metadata
+   * @return {Constructor<M> | undefined} The canonical constructor if stored, otherwise undefined
+   */
+  static constr<M>(model: Constructor<M>) {
+    return this.get(model, DecorationKeys.CONSTRUCTOR);
+  }
+
+  /**
    * @description Retrieves metadata for a model or a specific key within it
    * @summary When called with a constructor only, returns the entire metadata object associated with the model. When a key path is provided, returns the value stored at that nested key.
    * @template M
@@ -267,6 +279,7 @@ export class Metadata {
    * @return {META|*|undefined} The metadata object, the value at the key path, or undefined if nothing exists
    */
   static get(model: Constructor, key?: string) {
+    if (key !== DecorationKeys.CONSTRUCTOR) model = this.constr(model) || model;
     const symbol = Symbol.for(model.toString());
     return this.innerGet(symbol, key);
   }
@@ -291,7 +304,8 @@ export class Metadata {
    * @param {*} value The value to store in the metadata
    * @return {void}
    */
-  static set(model: Constructor | string, key: string, value: any) {
+  static set(model: Constructor | string, key: string, value: any): void {
+    if (typeof model !== "string") model = this.constr(model) || model;
     const symbol = Symbol.for(model.toString());
     this.innerSet(symbol, key, value);
     if (

@@ -39,6 +39,8 @@ export enum DecorationKeys {
   CLASS = "class",
   /** Container of human-friendly descriptions per class and property */
   DESCRIPTION = "description",
+  /** Holds the original constructor - for constructor override**/
+  CONSTRUCTOR = "constructor",
   /** Reflect metadata key for design time type of a property */
   DESIGN_TYPE = "design:type",
   /** Reflect metadata key for constructor parameter types */
@@ -48,18 +50,8 @@ export enum DecorationKeys {
 }
 
 /**
- * @description Typedef for the default metadata object shape
- * @summary Describes the minimal structure persisted for a model before any metadata is recorded.
- * @template M
- * @typedef {object} DefaultMetadataType<M>
- * @property {Record<string, Constructor | undefined>} properties - Mapping of property names to their design types
- * @memberOf module:decoration
- */
-
-/**
  * @description Default metadata instance
  * @summary Concrete default metadata object used when initializing metadata for a model
- * @type {DefaultMetadataType<any>}
  * @const DefaultMetadata
  * @memberOf module:decoration
  */

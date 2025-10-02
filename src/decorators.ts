@@ -51,7 +51,7 @@ export function prop() {
  * @category Method Decorators
  */
 export function method() {
-  return function method(obj: any, prop: any, descriptor: any) {
+  return function method(obj: any, prop?: any, descriptor?: any) {
     const designParams = Reflect.getOwnMetadata(
       DecorationKeys.DESIGN_PARAMS,
       obj,

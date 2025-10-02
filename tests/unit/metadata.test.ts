@@ -3,12 +3,20 @@ import { Metadata } from "../../src";
 import { DecorationKeys } from "../../src/constants";
 
 describe("Metadata store", () => {
-  beforeEach(() => {
-    // Reset mirror to default true for each test
+  const reset = () => {
     (Metadata as any).mirror = true;
+    (Metadata as any)._metadata = {};
+  };
+
+  beforeEach(() => {
+    reset();
   });
 
-  it.skip("should set and get nested values with mirroring on constructor", () => {
+  afterEach(() => {
+    reset();
+  });
+
+  it("should set and get nested values with mirroring on constructor", () => {
     class User {
       name!: string;
     }
@@ -47,13 +55,38 @@ describe("Metadata store", () => {
 
     const desc = Object.getOwnPropertyDescriptor(Book, DecorationKeys.REFLECT);
     expect(desc).toBeUndefined();
-
-    // cleanup
-    (Metadata as any).mirror = true;
   });
 
   it("should return undefined properties for classes without metadata", () => {
     class Empty {}
     expect(Metadata.properties(Empty as any)).toBeUndefined();
+  });
+
+  it("methods() should return undefined when no method metadata exists", () => {
+    class NoMethods {}
+    expect(Metadata.methods(NoMethods as any)).toBeUndefined();
+  });
+
+  it("methods() should list recorded method metadata keys", () => {
+    class Service {
+      get(): string {
+        return "svc";
+      }
+    }
+
+    Metadata.set(
+      Service as any,
+      `${DecorationKeys.METHODS}.get.${DecorationKeys.DESIGN_PARAMS}`,
+      []
+    );
+    Metadata.set(
+      Service as any,
+      `${DecorationKeys.METHODS}.get.${DecorationKeys.DESIGN_RETURN}`,
+      String
+    );
+
+    expect(Metadata.methods(Service as any)).toEqual(["get"]);
+    expect(Metadata.params(Service as any, "get")).toEqual([]);
+    expect(Metadata.return(Service as any, "get")).toBe(String);
   });
 });
