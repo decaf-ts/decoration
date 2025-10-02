@@ -150,7 +150,6 @@ describe("integration: decoration builder end-to-end", () => {
   });
 
   it("register() throws when decorators or flavour are missing", () => {
-    // @ts-expect-error accessing private method for integration assertions via any
     const callRegister = () =>
       (Decoration as any).register("k", "", undefined, undefined);
     expect(callRegister).toThrow(
