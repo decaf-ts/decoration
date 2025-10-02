@@ -159,6 +159,18 @@ export class Metadata {
   }
 
   /**
+   * @description Lists known methods for a model
+   * @summary Reads the metadata entry and returns the names of models that have recorded type information.
+   * @param {Constructor} model The target constructor
+   * @return {string[]|undefined} Array of property names or undefined if no metadata exists
+   */
+  static methods(model: Constructor): string[] | undefined {
+    const meta = this.get(model, DecorationKeys.METHODS);
+    if (!meta) return undefined;
+    return Object.keys(meta);
+  }
+
+  /**
    * @description Retrieves a human-readable description for a class or a property
    * @summary Looks up the description stored under the metadata "description" map. If a property key is provided, returns the property's description; otherwise returns the class description.
    * @template M
@@ -173,7 +185,39 @@ export class Metadata {
     return this.get(
       model,
       [DecorationKeys.DESCRIPTION, prop ? prop : DecorationKeys.CLASS].join(
-        ObjectKeySplitter
+        this.splitter
+      )
+    );
+  }
+
+  /**
+   * @description Retrieves the recorded params for a method
+   * @summary Reads the metadata entry under "methods.<prop>.design:params" to return the arguments for the iven method.
+   * @param {Constructor} model The target constructor
+   * @param {string} prop The method name
+   * @return {any[] | undefined} The argument types of the method or undefined if not available
+   */
+  static params<M>(model: Constructor<M>, prop: string): any[] | undefined {
+    return this.get(
+      model,
+      [DecorationKeys.METHODS, prop, DecorationKeys.DESIGN_PARAMS].join(
+        this.splitter
+      )
+    );
+  }
+
+  /**
+   * @description Retrieves the recorded return type for a method
+   * @summary Reads the metadata entry under "methods.<prop>.design:return" to return the return type for the given method.
+   * @param {Constructor} model The target constructor
+   * @param {string} prop The method name
+   * @return {any|undefined} The return type of the method or undefined if not available
+   */
+  static return<M>(model: Constructor<M>, prop: string): any | undefined {
+    return this.get(
+      model,
+      [DecorationKeys.METHODS, prop, DecorationKeys.DESIGN_RETURN].join(
+        this.splitter
       )
     );
   }
@@ -186,7 +230,10 @@ export class Metadata {
    * @return {Constructor|undefined} The constructor reference of the property type or undefined if not available
    */
   static type(model: Constructor, prop: string) {
-    return this.get(model, `${DecorationKeys.PROPERTIES}.${prop}`);
+    return this.get(
+      model,
+      [DecorationKeys.PROPERTIES, prop].join(this.splitter)
+    );
   }
 
   /**
