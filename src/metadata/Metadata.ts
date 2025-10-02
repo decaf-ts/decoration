@@ -307,6 +307,13 @@ export class Metadata {
     }
   }
 
+  /**
+   * @description Registers a decoration-aware library and its version
+   * @summary Stores the version string for an integrating library under the shared libraries metadata symbol, preventing duplicate registrations for the same library identifier.
+   * @param {string} library Package name or identifier to register
+   * @param {string} version Semantic version string associated with the library
+   * @throws {Error} If the library has already been registered
+   */
   static registerLibrary(library: string, version: string) {
     const symbol = Symbol.for(DecorationKeys.LIBRARIES);
     const lib = this.innerGet(symbol, library);
