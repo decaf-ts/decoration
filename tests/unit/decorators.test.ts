@@ -105,6 +105,7 @@ describe("decorators utilities", () => {
 
   it("param() should throw when parameter metadata is missing", () => {
     class NoMetadata {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       handler(_arg: number) {}
     }
 
@@ -117,18 +118,20 @@ describe("decorators utilities", () => {
 
   it("param() should throw when applied without a property key", () => {
     class NoPropertyKey {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       method(_arg: number) {}
     }
 
     const decorator = param();
 
-    expect(() => decorator(NoPropertyKey.prototype, undefined as any, 0)).toThrow(
-      /can only be applied to methods/
-    );
+    expect(() =>
+      decorator(NoPropertyKey.prototype, undefined as any, 0)
+    ).toThrow(/can only be applied to methods/);
   });
 
   it("param() should throw when index exceeds available metadata", () => {
     class WithMetadata {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       handler(_arg: number) {}
     }
 
@@ -149,6 +152,7 @@ describe("decorators utilities", () => {
 
   it("paramMetadata should append custom metadata alongside parameter types", () => {
     class Annotated {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       method(_value: number) {}
     }
 
@@ -164,15 +168,13 @@ describe("decorators utilities", () => {
     decorator(Annotated.prototype, key, 0);
 
     expect(
-      Metadata.get(
-        Annotated,
-        Metadata.key(DecorationKeys.METHODS, key, "tag")
-      )
+      Metadata.get(Annotated, Metadata.key(DecorationKeys.METHODS, key, "tag"))
     ).toBe("value");
   });
 
   it("methodMetadata should store metadata and capture reflected types", () => {
     class WithMethodMetadata {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       method(_value: number): string {
         return "ok";
       }
