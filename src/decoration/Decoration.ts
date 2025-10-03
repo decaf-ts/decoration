@@ -9,10 +9,10 @@ import {
 import { DefaultFlavour } from "../constants";
 
 /**
- * @description Default resolver that returns the current default flavour
- * @summary Resolves the flavour for a given target by always returning the library's DefaultFlavour value.
- * @param {object} target The target object being decorated
- * @return {string} The resolved flavour identifier
+ * @description Default resolver that returns the current default flavour.
+ * @summary Resolves the flavour for a given target by always returning the library's `DefaultFlavour` value.
+ * @param {object} target Target object being decorated.
+ * @return {string} Resolved flavour identifier.
  * @function defaultFlavourResolver
  * @memberOf module:decoration
  */
@@ -22,7 +22,7 @@ function defaultFlavourResolver(target: object) {
 }
 
 /**
- * @description Union type covering supported decorator kinds
+ * @description Union type covering supported decorator kinds.
  * @summary Represents any of the standard TypeScript decorator signatures (class, property, or method), enabling flexible registration and application within the Decoration system.
  * @template T
  * @typeDef DecoratorTypes
@@ -34,7 +34,7 @@ export type DecoratorTypes =
   | MethodDecorator;
 
 /**
- * @description Type definition for a decorator factory function
+ * @description Type definition for a decorator factory function.
  * @summary Represents a function that accepts arbitrary arguments and returns a concrete decorator function to be applied to a target.
  * @template A
  * @typeDef DecoratorFactory
@@ -43,11 +43,11 @@ export type DecoratorTypes =
 export type DecoratorFactory = (...args: any[]) => DecoratorTypes;
 
 /**
- * @description Argument bundle for a decorator factory
+ * @description Argument bundle for a decorator factory.
  * @summary Object form used to defer decorator creation, carrying both the factory function and its argument list to be invoked later during application.
  * @typeDef DecoratorFactoryArgs
- * @property {DecoratorFactory} decorator The factory function that produces a decorator when invoked
- * @property {any[]} args list of arguments to pass to the decorator factory
+ * @property {DecoratorFactory} decorator Factory function that produces a decorator when invoked.
+ * @property {any[]} args List of arguments to pass to the decorator factory.
  * @memberOf module:decoration
  */
 export type DecoratorFactoryArgs = {
@@ -56,20 +56,17 @@ export type DecoratorFactoryArgs = {
 };
 
 /**
- * @description Union that represents either a ready-to-apply decorator or a factory with arguments
+ * @description Union that represents either a ready-to-apply decorator or a factory with arguments.
  * @summary Allows registering decorators in two forms: as direct decorator functions or as deferred factories paired with their argument lists for later instantiation.
  * @typeDef DecoratorData
  * @memberOf module:decoration
  */
 export type DecoratorData = DecoratorTypes | DecoratorFactoryArgs;
 /**
- * @description A decorator management class that handles flavoured decorators
- * @summary The Decoration class provides a builder pattern for creating and managing decorators with different flavours.
- * It supports registering, extending, and applying decorators with context-aware flavour resolution.
- * The class implements a fluent interface for defining, extending, and applying decorators with different flavours,
- * allowing for framework-specific decorator implementations while maintaining a consistent API.
- * @template T Type of the decorator (ClassDecorator | PropertyDecorator | MethodDecorator)
- * @param {string} [flavour] Optional flavour parameter for the decorator context
+ * @description A decorator management class that handles flavoured decorators.
+ * @summary The Decoration class provides a builder pattern for creating and managing decorators with different flavours. It supports registering, extending, and applying decorators with context-aware flavour resolution, allowing framework-specific implementations while maintaining a consistent API.
+ * @template T Type of the decorator (ClassDecorator | PropertyDecorator | MethodDecorator).
+ * @param {string} [flavour=DefaultFlavour] Optional flavour parameter for the decorator context.
  * @class
  * @example
  * ```typescript
@@ -106,8 +103,8 @@ export type DecoratorData = DecoratorTypes | DecoratorFactoryArgs;
  */
 export class Decoration implements IDecorationBuilder {
   /**
-   * @description Static map of registered decorators
-   * @summary Stores all registered decorators organized by key and flavour
+   * @description Static map of registered decorators.
+   * @summary Stores all registered decorators organised by key and flavour.
    */
   private static decorators: Record<
     string,
@@ -121,33 +118,33 @@ export class Decoration implements IDecorationBuilder {
   > = {};
 
   /**
-   * @description Function to resolve flavour from a target
-   * @summary Resolver function that determines the appropriate flavour for a given target
+   * @description Function to resolve flavour from a target.
+   * @summary Resolver function that determines the appropriate flavour for a given target.
    */
   private static flavourResolver: FlavourResolver = defaultFlavourResolver;
 
   /**
-   * @description Set of decorators for the current context
+   * @description Set of decorators for the current context.
    */
   private decorators?: Set<DecoratorData>;
 
   /**
-   * @description Set of additional decorators
+   * @description Set of additional decorators.
    */
   private extras?: Set<DecoratorData>;
 
   /**
-   * @description Current decorator key
+   * @description Current decorator key.
    */
   private key?: string;
 
   constructor(private flavour: string = DefaultFlavour) {}
 
   /**
-   * @description Sets the key for the decoration builder
-   * @summary Initializes a new decoration chain with the specified key
-   * @param {string} key The identifier for the decorator
-   * @return {DecorationBuilderMid} Builder instance for method chaining
+   * @description Sets the key for the decoration builder.
+   * @summary Initialises a new decoration chain with the specified key.
+   * @param {string} key Identifier for the decorator.
+   * @return {DecorationBuilderMid} Builder instance for method chaining.
    */
   for(key: string): DecorationBuilderMid {
     this.key = key;
@@ -155,11 +152,11 @@ export class Decoration implements IDecorationBuilder {
   }
 
   /**
-   * @description Adds decorators to the current context
-   * @summary Internal method to add decorators with addon support
-   * @param {boolean} [addon=false] Whether the decorators are addons
-   * @param decorators Array of decorators
-   * @return {this} Current instance for chaining
+   * @description Adds decorators to the current context.
+   * @summary Internal method to add decorators with addon support.
+   * @param {boolean} [addon=false] Indicates whether the decorators are additive extras.
+   * @param {...DecoratorData} decorators Decorators to register for the configured key.
+   * @return {this} Current instance for chaining.
    */
   private decorate(
     addon: boolean = false,
@@ -187,10 +184,10 @@ export class Decoration implements IDecorationBuilder {
   }
 
   /**
-   * @description Defines the base decorators
-   * @summary Sets the primary decorators for the current context
-   * @param decorators Decorators to define
-   * @return Builder instance for finishing the chain
+   * @description Defines the base decorators.
+   * @summary Sets the primary decorators for the current context.
+   * @param {...DecoratorData} decorators Decorators to define.
+   * @return {DecorationBuilderEnd} Builder instance for finishing the chain (also implements DecorationBuilderBuild).
    */
   define(
     ...decorators: DecoratorData[]
@@ -206,10 +203,10 @@ export class Decoration implements IDecorationBuilder {
   }
 
   /**
-   * @description Extends existing decorators
-   * @summary Adds additional decorators to the current context
-   * @param decorators Additional decorators
-   * @return {DecorationBuilderBuild} Builder instance for building the decorator
+   * @description Extends existing decorators.
+   * @summary Adds additional decorators to the current context.
+   * @param {...DecoratorData} decorators Additional decorators to register as addons.
+   * @return {DecorationBuilderBuild} Builder instance for building the decorator.
    */
   extend(...decorators: DecoratorData[]): DecorationBuilderBuild {
     if (
@@ -223,12 +220,11 @@ export class Decoration implements IDecorationBuilder {
   }
 
   /**
-   * @description Factory that creates a context-aware decorator for a key/flavour
-   * @summary Produces a decorator function bound to the provided key and flavour. The resulting decorator resolves the actual
-   * decorators to apply at invocation time based on the target's resolved flavour and the registered base and extra decorators.
-   * @param {string} key The decoration key used to look up registered decorators
-   * @param {string} [f=DefaultFlavour] Optional explicit flavour to bind the factory to
-   * @return {function(object, any, TypedPropertyDescriptor<any>): any} A decorator function that applies the resolved decorators
+   * @description Factory that creates a context-aware decorator for a key/flavour.
+   * @summary Produces a decorator function bound to the provided key and flavour. The resulting decorator resolves the actual decorators to apply at invocation time based on the target's resolved flavour and the registered base and extra decorators.
+   * @param {string} key Decoration key used to look up registered decorators.
+   * @param {string} [f=DefaultFlavour] Explicit flavour to bind the factory to.
+   * @return {ClassDecorator|MethodDecorator|PropertyDecorator|ParameterDecorator} Decorator function that applies the resolved decorators.
    * @mermaid
    * sequenceDiagram
    *   participant U as User Code
@@ -308,9 +304,9 @@ export class Decoration implements IDecorationBuilder {
   }
 
   /**
-   * @description Creates the final decorator function
-   * @summary Builds and returns the decorator factory function
-   * @return {function(any, any?, TypedPropertyDescriptor?): any} The generated decorator function
+   * @description Creates the final decorator function.
+   * @summary Builds and returns the decorator factory function.
+   * @return {ClassDecorator|MethodDecorator|PropertyDecorator|ParameterDecorator} Generated decorator function ready for application.
    */
   apply(): (
     target: any,
@@ -329,12 +325,13 @@ export class Decoration implements IDecorationBuilder {
   }
 
   /**
-   * @description Registers decorators for a specific key and flavour
-   * @summary Internal method to store decorators in the static registry
-   * @param {string} key Decorator key
-   * @param {string} flavour Decorator flavour
-   * @param [decorators] Primary decorators
-   * @param [extras] Additional decorators
+   * @description Registers decorators for a specific key and flavour.
+   * @summary Internal method to store decorators in the static registry.
+   * @param {string} key Decorator key.
+   * @param {string} flavour Decorator flavour.
+   * @param {Set<DecoratorData>} [decorators] Primary decorators registered for the key.
+   * @param {Set<DecoratorData>} [extras] Additional decorators registered as flavour-specific addons.
+   * @return {void}
    */
   private static register(
     key: string,
@@ -358,29 +355,30 @@ export class Decoration implements IDecorationBuilder {
   }
 
   /**
-   * @description Sets the global flavour resolver
-   * @summary Configures the function used to determine decorator flavours
-   * @param {FlavourResolver} resolver Function to resolve flavours
+   * @description Sets the global flavour resolver.
+   * @summary Configures the function used to determine decorator flavours.
+   * @param {FlavourResolver} resolver Function to resolve flavours.
+   * @return {void}
    */
   static setFlavourResolver(resolver: FlavourResolver) {
     Decoration.flavourResolver = resolver;
   }
 
   /**
-   * @description Convenience static entry to start a decoration builder
+   * @description Convenience static entry to start a decoration builder.
    * @summary Creates a new Decoration instance and initiates the builder chain with the provided key.
-   * @param {string} key The decoration key to configure
-   * @return {DecorationBuilderMid} A builder instance for chaining definitions
+   * @param {string} key Decoration key to configure.
+   * @return {DecorationBuilderMid} Builder instance for chaining definitions.
    */
   static for(key: string): DecorationBuilderMid {
     return new Decoration().for(key);
   }
 
   /**
-   * @description Starts a builder for a specific flavour
+   * @description Starts a builder for a specific flavour.
    * @summary Convenience method to begin a Decoration builder chain bound to the given flavour identifier, allowing registration of flavour-specific decorators.
-   * @param {string} flavour The flavour name to bind to the builder
-   * @return {DecorationBuilderStart} A builder start interface to continue configuration
+   * @param {string} flavour Flavour name to bind to the builder.
+   * @return {DecorationBuilderStart} Builder start interface to continue configuration.
    */
   static flavouredAs(flavour: string): DecorationBuilderStart {
     return new Decoration(flavour);
