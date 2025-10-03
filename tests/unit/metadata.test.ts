@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { Metadata } from "../../src";
+import { Metadata, getValueBySplitter, setValueBySplitter } from "../../src";
 import { DecorationKeys } from "../../src/constants";
 
 describe("Metadata store", () => {
@@ -45,6 +45,20 @@ describe("Metadata store", () => {
     expect(desc?.configurable).toBe(false);
     expect(desc?.writable).toBe(false);
     expect((User as any)[DecorationKeys.REFLECT]).toBeDefined();
+  });
+
+  it("getValueBySplitter should return undefined when any path segment is missing", () => {
+    const data = { nested: { present: true } };
+
+    expect(getValueBySplitter(data, "nested.absent.leaf")).toBeUndefined();
+  });
+
+  it("setValueBySplitter should ignore empty paths", () => {
+    const data = { keep: "original" } as Record<string, unknown>;
+
+    setValueBySplitter(data, "", "mutated");
+
+    expect(data).toEqual({ keep: "original" });
   });
 
   it("should not mirror when mirror flag is disabled", () => {
@@ -104,6 +118,12 @@ describe("Metadata store", () => {
     );
   });
 
+  it("Metadata.param should return undefined when no parameter metadata exists", () => {
+    class Service {}
+
+    expect(Metadata.param(Service as any, "missing", 0)).toBeUndefined();
+  });
+
   it("inner metadata helpers should handle symbol keys", () => {
     const bucket = Symbol("bucket");
     const key = Symbol("key");
@@ -119,5 +139,9 @@ describe("Metadata store", () => {
     Metadata.registerLibrary(lib, "0.1.0");
 
     expect(Metadata.libraries()[lib]).toBe("0.1.0");
+  });
+
+  it("libraries() should return an empty object when nothing is registered", () => {
+    expect(Metadata.libraries()).toEqual({});
   });
 });

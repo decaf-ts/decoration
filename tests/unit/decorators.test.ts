@@ -7,6 +7,7 @@ import {
   description,
   param,
   paramMetadata,
+  methodMetadata,
 } from "../../src/decorators";
 import { Metadata } from "../../src/metadata/Metadata";
 import { DecorationKeys } from "../../src/constants";
@@ -114,6 +115,18 @@ describe("decorators utilities", () => {
     );
   });
 
+  it("param() should throw when applied without a property key", () => {
+    class NoPropertyKey {
+      method(_arg: number) {}
+    }
+
+    const decorator = param();
+
+    expect(() => decorator(NoPropertyKey.prototype, undefined as any, 0)).toThrow(
+      /can only be applied to methods/
+    );
+  });
+
   it("param() should throw when index exceeds available metadata", () => {
     class WithMetadata {
       handler(_arg: number) {}
@@ -156,5 +169,39 @@ describe("decorators utilities", () => {
         Metadata.key(DecorationKeys.METHODS, key, "tag")
       )
     ).toBe("value");
+  });
+
+  it("methodMetadata should store metadata and capture reflected types", () => {
+    class WithMethodMetadata {
+      method(_value: number): string {
+        return "ok";
+      }
+    }
+
+    const key = "method";
+    Reflect.defineMetadata(
+      DecorationKeys.DESIGN_PARAMS,
+      [Number],
+      WithMethodMetadata.prototype,
+      key
+    );
+    Reflect.defineMetadata(
+      DecorationKeys.DESIGN_RETURN,
+      String,
+      WithMethodMetadata.prototype,
+      key
+    );
+
+    const decorator = methodMetadata("custom.method", "value");
+    const descriptor = Object.getOwnPropertyDescriptor(
+      WithMethodMetadata.prototype,
+      key
+    )!;
+
+    decorator(WithMethodMetadata.prototype, key, descriptor);
+
+    expect(Metadata.get(WithMethodMetadata, "custom.method")).toBe("value");
+    expect(Metadata.params(WithMethodMetadata, key)).toEqual([Number]);
+    expect(Metadata.return(WithMethodMetadata, key)).toBe(String);
   });
 });
