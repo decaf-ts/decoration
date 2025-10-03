@@ -89,4 +89,35 @@ describe("Metadata store", () => {
     expect(Metadata.params(Service as any, "get")).toEqual([]);
     expect(Metadata.return(Service as any, "get")).toBe(String);
   });
+
+  it("param() helper should throw when index is out of range", () => {
+    class Service {}
+
+    Metadata.set(
+      Service as any,
+      `${DecorationKeys.METHODS}.run.${DecorationKeys.DESIGN_PARAMS}`,
+      [Number]
+    );
+
+    expect(() => Metadata.param(Service as any, "run", 3)).toThrow(
+      /Parameter index 3 out of range/
+    );
+  });
+
+  it("inner metadata helpers should handle symbol keys", () => {
+    const bucket = Symbol("bucket");
+    const key = Symbol("key");
+
+    (Metadata as any)._metadata = {};
+
+    (Metadata as any).innerSet(bucket, key, 42);
+    expect((Metadata as any).innerGet(bucket, key)).toBe(42);
+  });
+
+  it("libraries() should expose registered library versions", () => {
+    const lib = "@decaf-ts/coverage-lib";
+    Metadata.registerLibrary(lib, "0.1.0");
+
+    expect(Metadata.libraries()[lib]).toBe("0.1.0");
+  });
 });

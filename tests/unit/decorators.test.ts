@@ -5,6 +5,8 @@ import {
   apply,
   propMetadata,
   description,
+  param,
+  paramMetadata,
 } from "../../src/decorators";
 import { Metadata } from "../../src/metadata/Metadata";
 import { DecorationKeys } from "../../src/constants";
@@ -98,5 +100,61 @@ describe("decorators utilities", () => {
     expect(Metadata.get(D as any, `${DecorationKeys.DESCRIPTION}.a`)).toBe(
       "prop d"
     );
+  });
+
+  it("param() should throw when parameter metadata is missing", () => {
+    class NoMetadata {
+      handler(_arg: number) {}
+    }
+
+    const decorator = param();
+
+    expect(() => decorator(NoMetadata.prototype, "handler", 0)).toThrow(
+      /Missing parameter types/
+    );
+  });
+
+  it("param() should throw when index exceeds available metadata", () => {
+    class WithMetadata {
+      handler(_arg: number) {}
+    }
+
+    const key = "handler";
+    Reflect.defineMetadata(
+      DecorationKeys.DESIGN_PARAMS,
+      [Number],
+      WithMetadata.prototype,
+      key
+    );
+
+    const decorator = param();
+
+    expect(() => decorator(WithMetadata.prototype, key, 2)).toThrow(
+      /Parameter index 2 out of range/
+    );
+  });
+
+  it("paramMetadata should append custom metadata alongside parameter types", () => {
+    class Annotated {
+      method(_value: number) {}
+    }
+
+    const key = "method";
+    Reflect.defineMetadata(
+      DecorationKeys.DESIGN_PARAMS,
+      [Number],
+      Annotated.prototype,
+      key
+    );
+
+    const decorator = paramMetadata("tag", "value");
+    decorator(Annotated.prototype, key, 0);
+
+    expect(
+      Metadata.get(
+        Annotated,
+        Metadata.key(DecorationKeys.METHODS, key, "tag")
+      )
+    ).toBe("value");
   });
 });
