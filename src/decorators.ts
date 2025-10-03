@@ -5,7 +5,7 @@ import { DecorationKeys, ObjectKeySplitter } from "./constants";
  * @description Assigns arbitrary metadata to a target using a string key
  * @summary Decorator factory that stores a key/value pair in the central Metadata store for the provided class or member.
  * @param {string} key The metadata key to associate with the target
- * @param {*} value The metadata value to store under the given key
+ * @param {any} value The metadata value to store under the given key
  * @return A decorator that writes the metadata when applied
  * @function metadata
  * @category Decorators
@@ -43,8 +43,15 @@ export function prop() {
   };
 }
 
+/**
+ * @description Records method design-time metadata
+ * @summary Decorator factory that captures a method's reflected parameter and return types, storing them under the appropriate metadata keys so they can be inspected at runtime.
+ * @return A decorator that persists the method's signature information into the Metadata store when applied
+ * @function method
+ * @category Method Decorators
+ */
 export function method() {
-  return function method(obj: any, prop: any, descriptor: any) {
+  return function method(obj: any, prop?: any, descriptor?: any) {
     const designParams = Reflect.getOwnMetadata(
       DecorationKeys.DESIGN_PARAMS,
       obj,
@@ -131,7 +138,7 @@ export function propMetadata(key: string, value: any) {
  * @category Decorators
  */
 export function description(desc: string) {
-  return function description(original: any, prop: any, descriptor?: any) {
+  return function description(original: any, prop?: any, descriptor?: any) {
     return metadata(
       [
         DecorationKeys.DESCRIPTION,

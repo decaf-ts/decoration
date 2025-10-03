@@ -3,9 +3,17 @@ import { Decoration } from "../../src/decoration/Decoration";
 import { DefaultFlavour } from "../../src/constants";
 
 describe("Decoration builder", () => {
-  beforeEach(() => {
-    // reset resolver to default for each test
+  const resetState = () => {
     Decoration.setFlavourResolver(() => DefaultFlavour);
+    (Decoration as any).decorators = {};
+  };
+
+  beforeEach(() => {
+    resetState();
+  });
+
+  afterEach(() => {
+    resetState();
   });
 
   it("should require key before define/extend", () => {
@@ -51,11 +59,22 @@ describe("Decoration builder", () => {
     };
 
     // default base
-    Decoration.for("ovr").define(base).apply();
+    const decorate = Decoration.for("ovr").define(base).apply();
     // flavour-specific override decorators (no extras)
     Decoration.flavouredAs("f1").for("ovr").define(override).apply();
 
+    @decorate
+    class DefaultDecorated {}
+
     Decoration.setFlavourResolver(() => "f1");
+
+    @decorate
+    class FlavouredDecorated {}
+
+    expect(log).toEqual([
+      `base:${DefaultDecorated.name}`,
+      `override:${FlavouredDecorated.name}`,
+    ]);
   });
 
   it("should throw for unexpected decorator type", () => {
@@ -67,5 +86,40 @@ describe("Decoration builder", () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       class Z {}
     }).toThrow(/Unexpected decorator type/);
+  });
+
+  it("define should throw when multiple overridable decorators are provided", () => {
+    const builder = Decoration.for("multi");
+    const overridable = {
+      decorator: (() => ((target: any) => target)) as any,
+      args: [],
+    };
+
+    expect(() => builder.define(overridable as any, overridable as any)).toThrow(
+      /only one is allowed/
+    );
+  });
+
+  it("extend should throw when multiple overridable decorators are provided", () => {
+    const base: ClassDecorator = (target) => target;
+    const overridable = {
+      decorator: (() => ((target: any) => target)) as any,
+      args: [],
+    };
+
+    const builder = Decoration.flavouredAs("flavour")
+      .for("multi-extend")
+      .define(base);
+
+    expect(() => builder.extend(overridable as any, overridable as any)).toThrow(
+      /only one is allowed/
+    );
+  });
+
+  it("register should enforce required arguments", () => {
+    const register = (Decoration as any).register.bind(Decoration);
+    expect(() => register("", "f", new Set())).toThrow(/No key provided/);
+    expect(() => register("key", "f")).toThrow(/No decorators provided/);
+    expect(() => register("key", "", new Set())).toThrow(/No flavour provided/);
   });
 });

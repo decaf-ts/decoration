@@ -26,7 +26,7 @@ import "reflect-metadata";
  *   F-->>C: return final value
  * @memberOf module:decoration
  */
-function getValueBySplitter(
+export function getValueBySplitter(
   obj: Record<string, any>,
   path: string,
   splitter: string = ObjectKeySplitter
@@ -73,7 +73,7 @@ function getValueBySplitter(
  *   F-->>C: void
  * @memberOf module:decoration
  */
-function setValueBySplitter(
+export function setValueBySplitter(
   obj: Record<string, any>,
   path: string,
   value: any,
@@ -159,6 +159,18 @@ export class Metadata {
   }
 
   /**
+   * @description Lists known methods for a model
+   * @summary Reads the metadata entry and returns the method names that have recorded signature metadata for the provided constructor.
+   * @param {Constructor} model The target constructor
+   * @return {string[]|undefined} Array of property names or undefined if no metadata exists
+   */
+  static methods(model: Constructor): string[] | undefined {
+    const meta = this.get(model, DecorationKeys.METHODS);
+    if (!meta) return undefined;
+    return Object.keys(meta);
+  }
+
+  /**
    * @description Retrieves a human-readable description for a class or a property
    * @summary Looks up the description stored under the metadata "description" map. If a property key is provided, returns the property's description; otherwise returns the class description.
    * @template M
@@ -173,7 +185,39 @@ export class Metadata {
     return this.get(
       model,
       [DecorationKeys.DESCRIPTION, prop ? prop : DecorationKeys.CLASS].join(
-        ObjectKeySplitter
+        this.splitter
+      )
+    );
+  }
+
+  /**
+   * @description Retrieves the recorded params for a method
+   * @summary Reads the metadata entry under "methods.<prop>.design:params" to return the arguments for the iven method.
+   * @param {Constructor} model The target constructor
+   * @param {string} prop The method name
+   * @return {any[] | undefined} The argument types of the method or undefined if not available
+   */
+  static params<M>(model: Constructor<M>, prop: string): any[] | undefined {
+    return this.get(
+      model,
+      [DecorationKeys.METHODS, prop, DecorationKeys.DESIGN_PARAMS].join(
+        this.splitter
+      )
+    );
+  }
+
+  /**
+   * @description Retrieves the recorded return type for a method
+   * @summary Reads the metadata entry under "methods.<prop>.design:return" to return the return type for the given method.
+   * @param {Constructor} model The target constructor
+   * @param {string} prop The method name
+   * @return {any|undefined} The return type of the method or undefined if not available
+   */
+  static return<M>(model: Constructor<M>, prop: string): any | undefined {
+    return this.get(
+      model,
+      [DecorationKeys.METHODS, prop, DecorationKeys.DESIGN_RETURN].join(
+        this.splitter
       )
     );
   }
@@ -186,7 +230,22 @@ export class Metadata {
    * @return {Constructor|undefined} The constructor reference of the property type or undefined if not available
    */
   static type(model: Constructor, prop: string) {
-    return this.get(model, `${DecorationKeys.PROPERTIES}.${prop}`);
+    return this.get(
+      model,
+      [DecorationKeys.PROPERTIES, prop].join(this.splitter)
+    );
+  }
+
+  /**
+   * @description Resolves the canonical constructor associated with the provided model handle
+   * @summary Returns the stored constructor reference when the provided model is a proxy or reduced value. Falls back to the
+   * original model when no constructor metadata has been recorded yet.
+   * @template M
+   * @param {Constructor<M>} model The model used when recording metadata
+   * @return {Constructor<M> | undefined} The canonical constructor if stored, otherwise undefined
+   */
+  static constr<M>(model: Constructor<M>) {
+    return this.get(model, DecorationKeys.CONSTRUCTOR);
   }
 
   /**
@@ -220,6 +279,7 @@ export class Metadata {
    * @return {META|*|undefined} The metadata object, the value at the key path, or undefined if nothing exists
    */
   static get(model: Constructor, key?: string) {
+    if (key !== DecorationKeys.CONSTRUCTOR) model = this.constr(model) || model;
     const symbol = Symbol.for(model.toString());
     return this.innerGet(symbol, key);
   }
@@ -244,7 +304,8 @@ export class Metadata {
    * @param {*} value The value to store in the metadata
    * @return {void}
    */
-  static set(model: Constructor | string, key: string, value: any) {
+  static set(model: Constructor | string, key: string, value: any): void {
+    if (typeof model !== "string") model = this.constr(model) || model;
     const symbol = Symbol.for(model.toString());
     this.innerSet(symbol, key, value);
     if (
@@ -260,6 +321,13 @@ export class Metadata {
     }
   }
 
+  /**
+   * @description Registers a decoration-aware library and its version
+   * @summary Stores the version string for an integrating library under the shared libraries metadata symbol, preventing duplicate registrations for the same library identifier.
+   * @param {string} library Package name or identifier to register
+   * @param {string} version Semantic version string associated with the library
+   * @throws {Error} If the library has already been registered
+   */
   static registerLibrary(library: string, version: string) {
     const symbol = Symbol.for(DecorationKeys.LIBRARIES);
     const lib = this.innerGet(symbol, library);

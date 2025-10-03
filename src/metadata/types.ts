@@ -7,6 +7,7 @@ export type BasicMetadata<M> = {
     string
   >;
   [DecorationKeys.PROPERTIES]: Record<keyof M, Constructor<M> | undefined>;
+  [DecorationKeys.METHODS]: Record<keyof M, Constructor<M> | undefined>;
 };
 
 /**
