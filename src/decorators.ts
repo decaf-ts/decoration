@@ -62,9 +62,15 @@ export function prop() {
  *   P-->>U: parameter recorded
  */
 export function param() {
-  return function param(model: object, prop: any, index: number) {
+  return function param(
+    model: object,
+    prop: string | symbol | undefined,
+    index: number
+  ) {
+    if (!prop)
+      throw new Error(`The @param decorator can only be applied to methods`);
     method()(model, prop, Object.getOwnPropertyDescriptor(model, prop));
-    const paramTpes = Metadata.params(model.constructor as any, prop);
+    const paramTpes = Metadata.params(model.constructor as any, prop as string);
     if (!paramTpes)
       throw new Error(`Missing parameter types for ${String(prop)}`);
     if (index >= paramTpes.length)
@@ -72,7 +78,7 @@ export function param() {
         `Parameter index ${index} out of range for ${String(prop)}`
       );
     metadata(
-      Metadata.key(DecorationKeys.METHODS, prop, index.toString()),
+      Metadata.key(DecorationKeys.METHODS, prop as string, index.toString()),
       paramTpes[index]
     )(model, prop);
   };
@@ -201,6 +207,19 @@ export function apply(
  */
 export function propMetadata(key: string, value: any) {
   return apply(metadata(key, value), prop());
+}
+
+/**
+ * @description Creates a method metadata decorator.
+ * @summary Convenience factory that combines `metadata(key, value)` and `method()` to both set an arbitrary metadata key and record the method's design return and param types.
+ * @param {string} key Metadata key to set for the property.
+ * @param {any} value Metadata value to associate with the key.
+ * @return {PropertyDecorator} Decorator that sets the metadata and captures the property's type.
+ * @function methodMetadata
+ * @category Method Decorators
+ */
+export function methodMetadata(key: string, value: any) {
+  return apply(metadata(key, value), method());
 }
 
 /**

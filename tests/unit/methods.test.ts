@@ -6,6 +6,7 @@ describe("decoration: methods", () => {
       constructor() {}
 
       @method()
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       method(arg1: string): Promise<void> {
         return Promise.resolve();
       }
@@ -19,8 +20,8 @@ describe("decoration: methods", () => {
     class MethodClass2 {
       constructor() {}
 
-      method(@param() arg1: string = ""): Promise<void> {
-        return Promise.resolve();
+      method(@param() arg1: string = ""): Promise<any> {
+        return Promise.resolve(arg1);
       }
     }
 
