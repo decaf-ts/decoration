@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { Metadata } from "../../src";
+import { Metadata, getValueBySplitter, setValueBySplitter } from "../../src";
 import { DecorationKeys } from "../../src/constants";
 
 describe("Metadata store", () => {
@@ -47,6 +47,20 @@ describe("Metadata store", () => {
     expect((User as any)[DecorationKeys.REFLECT]).toBeDefined();
   });
 
+  it("getValueBySplitter should return undefined when any path segment is missing", () => {
+    const data = { nested: { present: true } };
+
+    expect(getValueBySplitter(data, "nested.absent.leaf")).toBeUndefined();
+  });
+
+  it("setValueBySplitter should ignore empty paths", () => {
+    const data = { keep: "original" } as Record<string, unknown>;
+
+    setValueBySplitter(data, "", "mutated");
+
+    expect(data).toEqual({ keep: "original" });
+  });
+
   it("should not mirror when mirror flag is disabled", () => {
     class Book {}
     (Metadata as any).mirror = false;
@@ -88,5 +102,46 @@ describe("Metadata store", () => {
     expect(Metadata.methods(Service as any)).toEqual(["get"]);
     expect(Metadata.params(Service as any, "get")).toEqual([]);
     expect(Metadata.return(Service as any, "get")).toBe(String);
+  });
+
+  it("param() helper should throw when index is out of range", () => {
+    class Service {}
+
+    Metadata.set(
+      Service as any,
+      `${DecorationKeys.METHODS}.run.${DecorationKeys.DESIGN_PARAMS}`,
+      [Number]
+    );
+
+    expect(() => Metadata.param(Service as any, "run", 3)).toThrow(
+      /Parameter index 3 out of range/
+    );
+  });
+
+  it("Metadata.param should return undefined when no parameter metadata exists", () => {
+    class Service {}
+
+    expect(Metadata.param(Service as any, "missing", 0)).toBeUndefined();
+  });
+
+  it("inner metadata helpers should handle symbol keys", () => {
+    const bucket = Symbol("bucket");
+    const key = Symbol("key");
+
+    (Metadata as any)._metadata = {};
+
+    (Metadata as any).innerSet(bucket, key, 42);
+    expect((Metadata as any).innerGet(bucket, key)).toBe(42);
+  });
+
+  it("libraries() should expose registered library versions", () => {
+    const lib = "@decaf-ts/coverage-lib";
+    Metadata.registerLibrary(lib, "0.1.0");
+
+    expect(Metadata.libraries()[lib]).toBe("0.1.0");
+  });
+
+  it("libraries() should return an empty object when nothing is registered", () => {
+    expect(Metadata.libraries()).toEqual({});
   });
 });

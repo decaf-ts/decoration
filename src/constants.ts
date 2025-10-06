@@ -1,57 +1,57 @@
 import { BasicMetadata } from "./metadata/types";
 
 /**
- * @description Default flavour identifier for the decorator system
- * @summary Defines the default flavour used by the Decoration class when no specific flavour is provided.
- * This constant is used throughout the library as the fallback flavour for decorators.
+ * @description Default flavour identifier for the decorator system.
+ * @summary Defines the default flavour used by the Decoration class when no specific flavour is provided. This constant is used throughout the library as the fallback flavour for decorators.
  * @const DefaultFlavour
  * @memberOf module:decoration
  */
 export const DefaultFlavour = "decaf";
 
 /**
- * @description Character used to split nested metadata keys
- * @summary The delimiter used by the metadata store to traverse nested object paths when reading/writing values.
+ * @description Character used to split nested metadata keys.
+ * @summary Defines the delimiter the metadata store uses to traverse nested object paths when reading or writing values.
  * @const ObjectKeySplitter
  * @memberOf module:decoration
  */
 export const ObjectKeySplitter = ".";
 
 /**
- * @description Enum containing metadata keys used for reflection in the model system
- * @summary Defines the various Model keys used for reflection and metadata storage.
- * These keys are used throughout the library to store and retrieve metadata about models,
- * their properties, and their behavior.
- * @readonly
+ * @description Metadata token registry for the decoration system.
+ * @summary Enumerates the keys used during reflection and metadata storage for classes, properties, methods, descriptions, and registered libraries.
  * @enum {string}
  * @readonly
+ * @const DecorationKeys
  * @memberOf module:decoration
  */
 export enum DecorationKeys {
+  /** @description Storage bucket for decoration-aware library registrations. */
   LIBRARIES = "libraries",
-  /** Storage key used on the constructor to mirror runtime metadata */
+  /** @description Storage key mirrored on constructors that holds runtime metadata. */
   REFLECT = `__${DefaultFlavour}`,
-  /** Map of model property keys to their reflected design types */
+  /** @description Container of reflected property metadata for a model. */
   PROPERTIES = "properties",
-  /** Map of model method keys to their reflected design params and return types */
+  /** @description Container of reflected method metadata for a model. */
   METHODS = "methods",
-  /** Key under which the model's constructor is stored */
+  /** @description Key under which the model constructor reference is persisted. */
   CLASS = "class",
-  /** Container of human-friendly descriptions per class and property */
+  /** @description Human-readable descriptions for classes and members. */
   DESCRIPTION = "description",
-  /** Holds the original constructor - for constructor override**/
+  /** @description Storage slot tracking the original constructor when overridden. */
   CONSTRUCTOR = "constructor",
-  /** Reflect metadata key for design time type of a property */
+  /** @description Collected parameter metadata for configured decorators. */
+  PARAMETERS = "parameters",
+  /** @description Reflect metadata key for a property's design type. */
   DESIGN_TYPE = "design:type",
-  /** Reflect metadata key for constructor parameter types */
+  /** @description Reflect metadata key for recorded constructor parameter types. */
   DESIGN_PARAMS = "design:paramtypes",
-  /** Reflect metadata key for method return type */
+  /** @description Reflect metadata key for a method's return type. */
   DESIGN_RETURN = "design:returntype",
 }
 
 /**
- * @description Default metadata instance
- * @summary Concrete default metadata object used when initializing metadata for a model
+ * @description Default metadata instance.
+ * @summary Provides the default metadata shape used when initializing new metadata entries for a model.
  * @const DefaultMetadata
  * @memberOf module:decoration
  */
