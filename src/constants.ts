@@ -38,7 +38,7 @@ export enum DecorationKeys {
   /** @description Human-readable descriptions for classes and members. */
   DESCRIPTION = "description",
   /** @description Storage slot tracking the original constructor when overridden. */
-  CONSTRUCTOR = "constructor",
+  CONSTRUCTOR = "__original",
   /** @description Collected parameter metadata for configured decorators. */
   PARAMETERS = "parameters",
   /** @description Reflect metadata key for a property's design type. */

@@ -270,7 +270,7 @@ export class Metadata {
    * @return {Constructor<M>|undefined} Canonical constructor if stored, otherwise `undefined`.
    */
   static constr<M>(model: Constructor<M>) {
-    return this.get(model, DecorationKeys.CONSTRUCTOR);
+    return model[DecorationKeys.CONSTRUCTOR as keyof typeof model];
   }
 
   /**
@@ -304,6 +304,7 @@ export class Metadata {
    * @return {META|*|undefined} Metadata object, the value at the key path, or `undefined` if nothing exists.
    */
   static get(model: Constructor, key?: string) {
+    if (key === DecorationKeys.CONSTRUCTOR) return this.constr(model);
     if (key !== DecorationKeys.CONSTRUCTOR) model = this.constr(model) || model;
     const symbol = Symbol.for(model.toString());
     return this.innerGet(symbol, key);
@@ -354,6 +355,15 @@ export class Metadata {
    * @return {void}
    */
   static set(model: Constructor | string, key: string, value: any): void {
+    if (key === DecorationKeys.CONSTRUCTOR) {
+      Object.defineProperty(model, DecorationKeys.CONSTRUCTOR, {
+        enumerable: false,
+        configurable: false,
+        writable: false,
+        value: value,
+      });
+      return;
+    }
     if (typeof model !== "string") model = this.constr(model) || model;
     const symbol = Symbol.for(model.toString());
     this.innerSet(symbol, key, value);
