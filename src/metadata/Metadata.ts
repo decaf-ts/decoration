@@ -270,7 +270,9 @@ export class Metadata {
    * @return {Constructor<M>|undefined} Canonical constructor if stored, otherwise `undefined`.
    */
   static constr<M>(model: Constructor<M>) {
-    return model[DecorationKeys.CONSTRUCTOR as keyof typeof model];
+    return model[DecorationKeys.CONSTRUCTOR as keyof typeof model] as
+      | Constructor<M>
+      | undefined;
   }
 
   /**
