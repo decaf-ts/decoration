@@ -1,6 +1,6 @@
 {
   "name": "@decaf-ts/decoration",
-  "version": "0.0.9",
+  "version": "0.0.15",
   "description": "Decoration and metadata mechanisms for decaf-ts",
   "type": "module",
   "exports": {
@@ -75,7 +75,7 @@
     "typescript",
     "ts"
   ],
-  "author": "Tiago Venceslau",
+  "author": "Tiago Venceslau and Contributors",
   "bugs": {
     "url": "https://github.com/decaf-ts/decoration/issues"
   },
@@ -117,5 +117,6 @@
   "peerDependencies": {
     "reflect-metadata": "^0.2.2",
     "typed-object-accumulator": "^0.1.5"
-  }
+  },
+  "license": "MIT"
 }
