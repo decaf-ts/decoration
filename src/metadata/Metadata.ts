@@ -370,6 +370,7 @@ export class Metadata {
     const symbol = Symbol.for(model.toString());
     this.innerSet(symbol, key, value);
     if (
+      typeof model !== "string" &&
       Metadata.mirror &&
       !Object.prototype.hasOwnProperty.call(model, this.baseKey)
     ) {
