@@ -144,4 +144,48 @@ describe("Metadata store", () => {
   it("libraries() should return an empty object when nothing is registered", () => {
     expect(Metadata.libraries()).toEqual({});
   });
+
+  it("get() falls back to the symbol registry for string handles", () => {
+    const handle = "decorator:string";
+    const key = `${DecorationKeys.PROPERTIES}.id`;
+
+    Metadata.set(handle, key, Number);
+
+    expect(Metadata.get(handle as any, key)).toBe(Number);
+  });
+
+  it("mergeMetadataChain merges nested metadata and honours primitive overrides", () => {
+    const merge = (Metadata as any).mergeMetadataChain.bind(Metadata);
+    const result = merge([
+      { nested: { base: true }, leaf: { keep: true } },
+      { nested: { child: true }, leaf: 42 },
+      ["terminal"],
+    ]);
+
+    expect(result).toEqual(["terminal"]);
+  });
+
+  it("set() stores constructor references under the CONSTRUCTOR key", () => {
+    class Example {}
+
+    Metadata.set(Example as any, DecorationKeys.CONSTRUCTOR, Example);
+
+    const descriptor = Object.getOwnPropertyDescriptor(
+      Example,
+      DecorationKeys.CONSTRUCTOR
+    );
+
+    expect(descriptor).toEqual(
+      expect.objectContaining({
+        enumerable: false,
+        configurable: false,
+        writable: false,
+        value: Example,
+      })
+    );
+
+    expect(
+      Metadata.get(Example as any, DecorationKeys.CONSTRUCTOR)
+    ).toBe(Example);
+  });
 });

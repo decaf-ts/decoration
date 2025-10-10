@@ -88,6 +88,27 @@ describe("Decoration builder", () => {
     }).toThrow(/Unexpected decorator type/);
   });
 
+  it("should execute overridable decorator factories with preserved arguments", () => {
+    const calls: string[] = [];
+
+    const decorator = Decoration.for("factory")
+      .define({
+        decorator: (label: string, payload: { tag: string }) => {
+          return ((target: any) => {
+            calls.push(`${label}:${payload.tag}:${(target as any).name}`);
+            return target;
+          }) as ClassDecorator;
+        },
+        args: ["factory", { tag: "payload" }],
+      } as any)
+      .apply();
+
+    @decorator
+    class Decorated {}
+
+    expect(calls).toEqual([`factory:payload:${Decorated.name}`]);
+  });
+
   it("define should throw when multiple overridable decorators are provided", () => {
     const builder = Decoration.for("multi");
     const overridable = {
