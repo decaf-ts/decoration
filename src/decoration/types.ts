@@ -10,10 +10,7 @@ export interface DecorationBuilderBuild {
   /**
    * @description Creates and returns the decorator function.
    * @summary Finalises the builder process and returns a decorator function that can be applied to a class, property, or method.
-   * @param {any} target Target constructor or prototype receiving the decorator.
-   * @param {any} [propertyKey] Property key when decorating a class member.
-   * @param {TypedPropertyDescriptor<any>} [descriptor] Descriptor supplied for method or accessor decoration.
-   * @return {ClassDecorator|MethodDecorator|PropertyDecorator|ParameterDecorator} Decorator function that can be applied to a target.
+   * @return {function(any, any, TypedPropertyDescriptor<any>):ClassDecorator|MethodDecorator|PropertyDecorator|ParameterDecorator} Decorator function that can be applied to a target.
    */
   apply(): (
     target: any,

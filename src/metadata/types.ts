@@ -2,24 +2,36 @@ import { DecorationKeys } from "../constants";
 
 /**
  * @description Shape of the metadata stored for a decorated model.
- * @summary Describes the required and optional metadata buckets tracked for a model, including constructor, descriptions, property types, and method signatures.
+ * @summary Captures the constructor reference alongside optional description, property, and method metadata buckets maintained by the decoration runtime.
  * @template M
- * @typeDef {Object} module:decoration.BasicMetadata
- * @property {Constructor} class Canonical constructor associated with the metadata (`DecorationKeys.CLASS`).
- * @property {Object<string, string>} [description] Human-readable descriptions for the class and its members (`DecorationKeys.DESCRIPTION`).
- * @property {Object<string, Constructor|undefined>} properties Reflected property type constructors keyed by property name (`DecorationKeys.PROPERTIES`).
- * @property {Object<string, Constructor|undefined>} methods Reflected method signature constructors keyed by method name (`DecorationKeys.METHODS`).
+ * @typeDef BasicMetadata<M>
+ * @property {Constructor<M>} [DecorationKeys.CLASS] Canonical constructor associated with the metadata entry.
+ * @property {Record<string, string>} [DecorationKeys.DESCRIPTION] Human-readable descriptions for the class and its members.
+ * @property {Record<string, Constructor<M>|undefined>} [DecorationKeys.PROPERTIES] Reflected property type constructors keyed by property name.
+ * @property {Record<string, Constructor<M>|undefined>} [DecorationKeys.METHODS] Reflected method signature constructors keyed by method name.
  * @memberOf module:decoration
  */
 /** @ignore */
 export type BasicMetadata<M> = {
-  /** @type {Constructor} */
+  /**
+   * @description Canonical constructor associated with the metadata entry.
+   * @type {Constructor<M>}
+   */
   [DecorationKeys.CLASS]: Constructor<M>;
-  /** @type {Object<string, string>} */
+  /**
+   * @description Map of human-friendly descriptions for the class and its members.
+   * @type {Record<string, string>}
+   */
   [DecorationKeys.DESCRIPTION]?: Record<string, string>;
-  /** @type {Object<string, Constructor|undefined>} */
+  /**
+   * @description Property metadata keyed by property name including recorded design types.
+   * @type {Record<string, Constructor<M>|undefined>}
+   */
   [DecorationKeys.PROPERTIES]: Record<string, Constructor<M> | undefined>;
-  /** @type {Object<string, Constructor|undefined>} */
+  /**
+   * @description Method metadata keyed by method name including recorded design signatures.
+   * @type {Record<string, Constructor<M>|undefined>}
+   */
   [DecorationKeys.METHODS]: Record<string, Constructor<M> | undefined>;
 };
 
