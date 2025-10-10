@@ -2,7 +2,8 @@ import { BasicMetadata } from "./metadata/types";
 
 /**
  * @description Default flavour identifier for the decorator system.
- * @summary Defines the default flavour used by the Decoration class when no specific flavour is provided. This constant is used throughout the library as the fallback flavour for decorators.
+ * @summary Defines the fallback flavour used when no specific value is provided, ensuring consistent decorator selection across the library.
+ * @type {string}
  * @const DefaultFlavour
  * @memberOf module:decoration
  */
@@ -10,7 +11,8 @@ export const DefaultFlavour = "decaf";
 
 /**
  * @description Character used to split nested metadata keys.
- * @summary Defines the delimiter the metadata store uses to traverse nested object paths when reading or writing values.
+ * @summary Defines the delimiter applied by the metadata store when traversing nested object paths for read and write operations.
+ * @type {string}
  * @const ObjectKeySplitter
  * @memberOf module:decoration
  */
@@ -51,7 +53,8 @@ export enum DecorationKeys {
 
 /**
  * @description Default metadata instance.
- * @summary Provides the default metadata shape used when initializing new metadata entries for a model.
+ * @summary Provides the default metadata shape used when initialising new metadata entries for a model.
+ * @type {module:decoration.BasicMetadata<any>}
  * @const DefaultMetadata
  * @memberOf module:decoration
  */

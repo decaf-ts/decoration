@@ -307,9 +307,19 @@ export class Metadata {
    */
   static get(model: Constructor, key?: string) {
     if (key === DecorationKeys.CONSTRUCTOR) return this.constr(model);
-    if (key !== DecorationKeys.CONSTRUCTOR) model = this.constr(model) || model;
-    const symbol = Symbol.for(model.toString());
-    return this.innerGet(symbol, key);
+    const resolvedModel = this.constr(model) || model;
+    const constructors = this.collectConstructorChain(resolvedModel);
+    if (constructors.length === 0) {
+      const fallbackSymbol = Symbol.for(resolvedModel.toString());
+      return this.innerGet(fallbackSymbol, key);
+    }
+    const collectedValues = constructors
+      .map((ctor) => this.innerGet(Symbol.for(ctor.toString()), key))
+      .filter((value) => value !== undefined);
+
+    if (collectedValues.length === 0) return undefined;
+
+    return this.mergeMetadataChain(collectedValues);
   }
 
   /**
@@ -325,6 +335,119 @@ export class Metadata {
     if (typeof key === "string")
       return getValueBySplitter(this._metadata[symbol], key, this.splitter);
     return this._metadata[symbol][key];
+  }
+
+  /**
+   * @description Builds the inheritance chain for a constructor, ordered from base to most-specific class.
+   * @summary Walks the prototype chain starting from the provided constructor until reaching Function/Object and returns the collected constructors.
+   * @param {Constructor} model Constructor whose chain should be collected.
+   * @return {Constructor[]} Array of constructors ordered from base to leaf.
+   */
+  private static collectConstructorChain(model: Constructor): Constructor[] {
+    const chain: Constructor[] = [];
+    let current: any = model;
+
+    while (typeof current === "function" && current !== Function) {
+      chain.push(current as Constructor);
+      const parent = Object.getPrototypeOf(current);
+      if (!parent || parent === Function || parent === Object) break;
+      current = parent;
+    }
+
+    return chain.reverse();
+  }
+
+  /**
+   * @description Merges metadata values collected across the inheritance chain.
+   * @summary Performs a deep merge for plain objects while letting non-object values override earlier ones to preserve child metadata precedence.
+   * @param {any[]} values Metadata values gathered from base to child.
+   * @return {any} Aggregated metadata value respecting inheritance precedence.
+   */
+  private static mergeMetadataChain(values: any[]) {
+    let acc: any = undefined;
+
+    for (const value of values) {
+      if (acc === undefined) {
+        acc = this.cloneMetadataValue(value);
+        continue;
+      }
+
+      if (this.isPlainObject(acc) && this.isPlainObject(value)) {
+        acc = this.mergePlainObjects(
+          acc as Record<string, any>,
+          value as Record<string, any>
+        );
+        continue;
+      }
+
+      acc = this.cloneMetadataValue(value);
+    }
+
+    return acc;
+  }
+
+  /**
+   * @description Produces a deep clone of a metadata value when necessary.
+   * @summary Arrays are shallow-cloned, plain objects are deep-cloned, and primitive/function values are returned as-is.
+   * @param {any} value Metadata value to clone.
+   * @return {any} Cloned metadata value preventing mutation of the backing store.
+   */
+  private static cloneMetadataValue(value: any) {
+    if (Array.isArray(value)) return [...value];
+    if (this.isPlainObject(value))
+      return this.mergePlainObjects({}, value as Record<string, any>);
+    return value;
+  }
+
+  /**
+   * @description Deeply merges two plain metadata objects.
+   * @summary Recursively merges nested plain objects while cloning arrays; values from `source` override those from `target` when conflicts occur.
+   * @param {Record<string, any>} target Base object to merge into.
+   * @param {Record<string, any>} source Object providing overriding metadata.
+   * @return {Record<string, any>} Newly merged metadata object.
+   */
+  private static mergePlainObjects(
+    target: Record<string, any>,
+    source: Record<string, any>
+  ): Record<string, any> {
+    const result: Record<string, any> = { ...target };
+
+    for (const key of Object.keys(source)) {
+      const sourceValue = source[key];
+      const targetValue = result[key];
+
+      if (this.isPlainObject(sourceValue)) {
+        result[key] = this.isPlainObject(targetValue)
+          ? this.mergePlainObjects(
+              targetValue as Record<string, any>,
+              sourceValue as Record<string, any>
+            )
+          : this.mergePlainObjects({}, sourceValue as Record<string, any>);
+        continue;
+      }
+
+      if (Array.isArray(sourceValue)) {
+        result[key] = [...sourceValue];
+        continue;
+      }
+
+      result[key] = sourceValue;
+    }
+
+    return result;
+  }
+
+  /**
+   * @description Checks if a value is a plain object suitable for deep merging.
+   * @summary Ensures arrays and null are excluded while accepting objects created via literal/class syntax.
+   * @param {any} value Value to inspect.
+   * @return {boolean} True when the value is a plain object.
+   */
+  private static isPlainObject(value: any): value is Record<string, any> {
+    if (value === null || typeof value !== "object" || Array.isArray(value))
+      return false;
+    const proto = Object.getPrototypeOf(value);
+    return proto === Object.prototype || proto === null;
   }
 
   /**

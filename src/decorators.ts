@@ -214,7 +214,7 @@ export function propMetadata(key: string, value: any) {
  * @summary Convenience factory that combines `metadata(key, value)` and `method()` to both set an arbitrary metadata key and record the method's design return and param types.
  * @param {string} key Metadata key to set for the property.
  * @param {any} value Metadata value to associate with the key.
- * @return {PropertyDecorator} Decorator that sets the metadata and captures the property's type.
+ * @return {MethodDecorator} Decorator that sets the metadata and captures the method's signature metadata.
  * @function methodMetadata
  * @category Method Decorators
  */

@@ -1,10 +1,6 @@
 /**
- * @description Root entry point for the decoration module.
- * @summary Aggregates and re-exports the public API of the decoration library, including {@link Decoration}, decorator utilities from {@link module:decoration|./decorators}, {@link Metadata}, and shared constants such as {@link DecorationKeys} and {@link DefaultFlavour}. This is the primary import surface for consumers and exposes:
- * - Core builder: {@link Decoration}
- * - Decorator utilities: {@link module:decoration|decorators in ./decorators}
- * - Metadata utilities: {@link Metadata}
- * - Constants and enums: {@link DecorationKeys}, {@link DefaultFlavour}
+ * @description Root entry point for the decoration package.
+ * @summary Re-exports the builder API, decorator helpers, metadata utilities, and shared constants so consumers can import {@link Decoration}, {@link Metadata}, {@link DecorationKeys}, and {@link DefaultFlavour} from a single surface.
  * @module decoration
  */
 
@@ -16,8 +12,9 @@ export * from "./constants";
 export * from "./decorators";
 
 /**
- * @description Current version of the reflection package
- * @summary Stores the semantic version number of the package
+ * @description Current version of the decoration package.
+ * @summary Stores the semantic version string registered through {@link Metadata.registerLibrary}.
+ * @type {string}
  * @const VERSION
  * @memberOf module:decoration
  */
