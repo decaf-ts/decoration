@@ -26,11 +26,38 @@ describe("Decoration builder", () => {
     );
   });
 
-  it("should forbid extending default flavour", () => {
-    const d = new Decoration().for("k");
-    expect(() => (d as any).extend(((target: any) => target) as any)).toThrow(
-      /Default flavour cannot be extended/i
-    );
+  it("allows extending default flavour with overridable decorators", () => {
+    const calls: string[] = [];
+    const decorate = Decoration.for("k")
+      .define({
+        decorator: (label: string) => {
+          return ((target: any) => {
+            calls.push(`base:${label}:${(target as any).name ?? target.constructor.name}`);
+            return target;
+          }) as ClassDecorator;
+        },
+        args: ["label"],
+      } as any)
+      .apply();
+
+    Decoration.for("k")
+      .extend({
+        decorator: (label: string) => {
+          return ((target: any) => {
+            calls.push(`extended:${label}:${(target as any).name ?? target.constructor.name}`);
+            return target;
+          }) as ClassDecorator;
+        },
+      } as any)
+      .apply();
+
+    @decorate
+    class Sample {}
+
+    expect(calls).toEqual([
+      `base:label:${Sample.name}`,
+      `extended:label:${Sample.name}`,
+    ]);
   });
 
   it("should require overrides/addons when using non-default flavour with no decorators", () => {

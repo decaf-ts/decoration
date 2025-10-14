@@ -65,6 +65,7 @@ export type DecoratorData = DecoratorTypes | DecoratorFactoryArgs;
 export type ExtendDecoratorData =
   | DecoratorTypes
   | Omit<DecoratorFactoryArgs, "args">;
+type StoredDecoratorData = DecoratorData | ExtendDecoratorData;
 /**
  * @description A decorator management class that handles flavoured decorators.
  * @summary The Decoration class provides a builder pattern for creating and managing decorators with different flavours. It supports registering, extending, and applying decorators with context-aware flavour resolution, allowing framework-specific implementations while maintaining a consistent API.
@@ -115,7 +116,7 @@ export class Decoration implements IDecorationBuilder {
       string,
       {
         decorators?: Set<DecoratorData>;
-        extras?: Set<DecoratorData>;
+        extras?: Set<StoredDecoratorData>;
       }
     >
   > = {};
@@ -134,7 +135,7 @@ export class Decoration implements IDecorationBuilder {
   /**
    * @description Set of additional decorators.
    */
-  private extras?: Set<DecoratorData>;
+  private extras?: Set<StoredDecoratorData>;
 
   /**
    * @description Current decorator key.
@@ -163,7 +164,7 @@ export class Decoration implements IDecorationBuilder {
    */
   private decorate(
     addon: boolean = false,
-    ...decorators: DecoratorData[]
+    ...decorators: StoredDecoratorData[]
   ): this {
     if (!this.key)
       throw new Error("key must be provided before decorators can be added");
@@ -175,10 +176,7 @@ export class Decoration implements IDecorationBuilder {
       throw new Error(
         "Must provide overrides or addons to override or extend decaf's decorators"
       );
-    if (this.flavour === DefaultFlavour && addon)
-      throw new Error("Default flavour cannot be extended");
-
-    this[addon ? "extras" : "decorators"] = new Set([
+    (this as any)[addon ? "extras" : "decorators"] = new Set([
       ...(this[addon ? "extras" : "decorators"] || new Set()).values(),
       ...decorators,
     ]);
@@ -211,7 +209,7 @@ export class Decoration implements IDecorationBuilder {
    * @param {...DecoratorData} decorators Additional decorators to register as addons.
    * @return {DecorationBuilderBuild} Builder instance for building the decorator.
    */
-  extend(...decorators: DecoratorData[]): DecorationBuilderBuild {
+  extend(...decorators: ExtendDecoratorData[]): DecorationBuilderBuild {
     if (
       decorators.find((d) => typeof d === "object") &&
       decorators.length !== 1
@@ -268,27 +266,66 @@ export class Decoration implements IDecorationBuilder {
         decorators = cache[DefaultFlavour].decorators;
       }
 
-      const decoratorArgs = [
-        ...(cache[DefaultFlavour] as any).decorators.values(),
-      ].reduce((accum: Record<number, any>, e, i) => {
-        if (e.args) accum[i] = e.args;
-        return accum;
-      }, {});
+      const baseDecoratorsList = [...(decorators ? decorators.values() : [])];
+
+      const defaultDecoratorsList = [
+        ...(cache[DefaultFlavour]?.decorators || new Set()).values(),
+      ];
+
+      const baseArgsByIndex = baseDecoratorsList.reduce(
+        (accum, entry, index) => {
+          if (
+            typeof entry === "object" &&
+            "args" in (entry as any) &&
+            Array.isArray((entry as any).args)
+          ) {
+            accum[index] = (entry as any).args;
+          }
+          return accum;
+        },
+        {} as Record<number, any[]>
+      );
+
+      const defaultArgsByIndex = defaultDecoratorsList.reduce(
+        (accum, entry, index) => {
+          if (
+            typeof entry === "object" &&
+            "args" in (entry as any) &&
+            Array.isArray((entry as any).args)
+          ) {
+            accum[index] = (entry as any).args;
+          }
+          return accum;
+        },
+        {} as Record<number, any[]>
+      );
 
       const toApply = [
-        ...(decorators ? decorators.values() : []),
+        ...baseDecoratorsList,
         ...(extras ? extras.values() : []),
       ];
 
+      const baseLength = baseDecoratorsList.length;
+
       return toApply.reduce(
-        (_, d) => {
+        (_, d, index) => {
           switch (typeof d) {
             case "object": {
-              const { decorator } = d as DecoratorFactoryArgs;
+              const entry = d as any;
+              const candidateIndex = index < baseLength ? index : 0;
+              const args =
+                "args" in entry && Array.isArray(entry.args)
+                  ? entry.args
+                  : (baseArgsByIndex[candidateIndex] ??
+                    defaultArgsByIndex[candidateIndex] ??
+                    defaultArgsByIndex[0] ??
+                    []);
 
-              return (
-                decorator(...(Object.values(decoratorArgs)[0] || [])) as any
-              )(target, propertyKey, descriptor);
+              return (entry.decorator(...args) as any)(
+                target,
+                propertyKey,
+                descriptor
+              );
             }
             case "function":
               return (d as any)(target, propertyKey, descriptor);
@@ -318,10 +355,15 @@ export class Decoration implements IDecorationBuilder {
   ) => any {
     if (!this.key)
       throw new Error("No key provided for the decoration builder");
+    const existingDecorators =
+      Decoration.decorators[this.key]?.[this.flavour]?.decorators;
+    const decoratorsToRegister =
+      this.decorators || existingDecorators || new Set<DecoratorData>();
+
     Decoration.register(
       this.key,
       this.flavour,
-      this.decorators || new Set(),
+      decoratorsToRegister,
       this.extras
     );
     return this.decoratorFactory(this.key, this.flavour);
@@ -340,7 +382,7 @@ export class Decoration implements IDecorationBuilder {
     key: string,
     flavour: string,
     decorators?: Set<DecoratorData>,
-    extras?: Set<DecoratorData>
+    extras?: Set<StoredDecoratorData>
   ) {
     if (!key) {
       throw new Error("No key provided for the decoration builder");
