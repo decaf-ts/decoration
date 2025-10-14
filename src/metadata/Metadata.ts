@@ -147,6 +147,10 @@ export class Metadata {
 
   private constructor() {}
 
+  static Symbol<M>(obj: Constructor<M>) {
+    return Symbol.for([obj.toString(), obj.name].join(" - "));
+  }
+
   /**
    * @description Lists known property keys for a model.
    * @summary Reads the metadata entry and returns the names of properties that have recorded type information.
@@ -314,7 +318,7 @@ export class Metadata {
       return this.innerGet(fallbackSymbol, key);
     }
     const collectedValues = constructors
-      .map((ctor) => this.innerGet(Symbol.for(ctor.toString()), key))
+      .map((ctor) => this.innerGet(this.Symbol(ctor), key))
       .filter((value) => value !== undefined);
 
     if (collectedValues.length === 0) return undefined;
@@ -490,7 +494,8 @@ export class Metadata {
       return;
     }
     if (typeof model !== "string") model = this.constr(model) || model;
-    const symbol = Symbol.for(model.toString());
+    const symbol =
+      typeof model === "string" ? Symbol.for(model) : this.Symbol(model);
     this.innerSet(symbol, key, value);
     if (
       typeof model !== "string" &&
