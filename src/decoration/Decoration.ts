@@ -62,6 +62,9 @@ export type DecoratorFactoryArgs = {
  * @memberOf module:decoration
  */
 export type DecoratorData = DecoratorTypes | DecoratorFactoryArgs;
+export type ExtendDecoratorData =
+  | DecoratorTypes
+  | Omit<DecoratorFactoryArgs, "args">;
 /**
  * @description A decorator management class that handles flavoured decorators.
  * @summary The Decoration class provides a builder pattern for creating and managing decorators with different flavours. It supports registering, extending, and applying decorators with context-aware flavour resolution, allowing framework-specific implementations while maintaining a consistent API.
