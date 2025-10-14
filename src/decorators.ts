@@ -1,5 +1,6 @@
 import { Metadata } from "./metadata/Metadata";
 import { DecorationKeys } from "./constants";
+import { Decoration } from "./decoration/Decoration";
 
 /**
  * @description Assigns arbitrary metadata to a target using a string key.
@@ -30,17 +31,26 @@ export function metadata(key: string, value: any) {
  * @category Property Decorators
  */
 export function prop() {
-  return function prop(model: object, prop: any) {
-    const designType = Reflect.getOwnMetadata(
-      DecorationKeys.DESIGN_TYPE,
-      model,
-      prop
-    );
-    return metadata(Metadata.key(DecorationKeys.PROPERTIES, prop), designType)(
-      model,
-      prop
-    );
-  };
+  function innerProp() {
+    return function innerProp(model: object, prop?: any) {
+      const designType = Reflect.getOwnMetadata(
+        DecorationKeys.DESIGN_TYPE,
+        model,
+        prop
+      );
+      return metadata(
+        Metadata.key(DecorationKeys.PROPERTIES, prop),
+        designType
+      )(model, prop);
+    };
+  }
+
+  return Decoration.for(DecorationKeys.PROPERTIES)
+    .define({
+      decorator: innerProp,
+      args: [],
+    })
+    .apply();
 }
 
 /**
@@ -230,14 +240,28 @@ export function methodMetadata(key: string, value: any) {
  * @function description
  * @category Decorators
  */
+
 export function description(desc: string) {
-  return function description(original: any, prop?: any, descriptor?: any) {
-    return metadata(
-      [
-        DecorationKeys.DESCRIPTION,
-        prop ? prop.toString() : DecorationKeys.CLASS,
-      ].join(Metadata.splitter),
-      desc
-    )(original, prop, descriptor);
-  };
+  function innerDescription(desc: string) {
+    return function innerDescription(
+      original: any,
+      prop?: any,
+      descriptor?: any
+    ) {
+      return metadata(
+        [
+          DecorationKeys.DESCRIPTION,
+          prop ? prop.toString() : DecorationKeys.CLASS,
+        ].join(Metadata.splitter),
+        desc
+      )(original, prop, descriptor);
+    };
+  }
+
+  return Decoration.for(DecorationKeys.DESCRIPTION)
+    .define({
+      decorator: innerDescription,
+      args: [desc],
+    })
+    .apply();
 }
