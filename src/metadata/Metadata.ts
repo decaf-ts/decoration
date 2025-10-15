@@ -267,16 +267,14 @@ export class Metadata {
   }
 
   /**
-   * @description Resolves the canonical constructor associated with the provided model handle.
+   * @description Resolves the canonical constructor associated with the provided model handle and metadata.
    * @summary Returns the stored constructor reference when the provided model is a proxy or reduced value. Falls back to the original model when no constructor metadata has been recorded yet.
    * @template M
    * @param {Constructor<M>} model Model used when recording metadata.
-   * @return {Constructor<M>|undefined} Canonical constructor if stored, otherwise `undefined`.
+   * @return {Constructor<M>} Canonical constructor if stored, otherwise the provided one`.
    */
-  static constr<M>(model: Constructor<M>) {
-    return model[DecorationKeys.CONSTRUCTOR as keyof typeof model] as
-      | Constructor<M>
-      | undefined;
+  static constr<M>(model: Constructor<M>): Constructor<M> {
+    return model[DecorationKeys.CONSTRUCTOR as keyof typeof model] || model;
   }
 
   /**
@@ -311,7 +309,7 @@ export class Metadata {
    */
   static get(model: Constructor, key?: string) {
     if (key === DecorationKeys.CONSTRUCTOR) return this.constr(model);
-    const resolvedModel = this.constr(model) || model;
+    const resolvedModel = this.constr(model);
     const constructors = this.collectConstructorChain(resolvedModel);
     if (constructors.length === 0) {
       const fallbackSymbol = Symbol.for(resolvedModel.toString());
