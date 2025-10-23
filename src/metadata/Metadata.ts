@@ -189,8 +189,9 @@ export class Metadata {
   ): string | undefined {
     return this.get(
       model,
-      [DecorationKeys.DESCRIPTION, prop ? prop : DecorationKeys.CLASS].join(
-        this.splitter
+      this.key(
+        DecorationKeys.DESCRIPTION,
+        (prop ? prop : DecorationKeys.CLASS) as string
       )
     );
   }
@@ -206,9 +207,7 @@ export class Metadata {
   static params<M>(model: Constructor<M>, prop: string): any[] | undefined {
     return this.get(
       model,
-      [DecorationKeys.METHODS, prop, DecorationKeys.DESIGN_PARAMS].join(
-        this.splitter
-      )
+      this.key(DecorationKeys.METHODS, prop, DecorationKeys.DESIGN_PARAMS)
     );
   }
 
@@ -246,9 +245,7 @@ export class Metadata {
   static return<M>(model: Constructor<M>, prop: string): any | undefined {
     return this.get(
       model,
-      [DecorationKeys.METHODS, prop, DecorationKeys.DESIGN_RETURN].join(
-        this.splitter
-      )
+      this.key(DecorationKeys.METHODS, prop, DecorationKeys.DESIGN_RETURN)
     );
   }
 
@@ -260,10 +257,7 @@ export class Metadata {
    * @return {Constructor|undefined} Constructor reference for the property type or `undefined` if not available.
    */
   static type(model: Constructor, prop: string) {
-    return this.get(
-      model,
-      [DecorationKeys.PROPERTIES, prop].join(this.splitter)
-    );
+    return this.get(model, this.key(DecorationKeys.PROPERTIES, prop));
   }
 
   /**
