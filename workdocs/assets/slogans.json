@@ -27,7 +27,10 @@
     "Slogan": "Decorators that don’t crash the party (or the app).",
     "Tags": "Safe, Humor, DevX"
   },
-  { "Slogan": "TypeScript just got a glow-up.", "Tags": "TS, Humor, Beauty" },
+  {
+    "Slogan": "TypeScript just got a glow-up.",
+    "Tags": "TS, Humor, Beauty"
+  },
   {
     "Slogan": "Wrap your logic in elegance.",
     "Tags": "Functional, Calm, Decorators"
@@ -176,7 +179,10 @@
     "Slogan": "Write less code. Decorate more personality.",
     "Tags": "Humor, Decorators, Minimalism"
   },
-  { "Slogan": "Functionality meets flair.", "Tags": "Decorators, Fun, Tech" },
+  {
+    "Slogan": "Functionality meets flair.",
+    "Tags": "Decorators, Fun, Tech"
+  },
   {
     "Slogan": "The sprinkle of syntactic joy your code forgot it needed.",
     "Tags": "Decorators, Joy, Calm"
