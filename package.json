@@ -103,7 +103,7 @@
   },
   "peerDependencies": {
     "reflect-metadata": "^0.2.2",
-    "typed-object-accumulator": "^0.1.5"
+    "typed-object-accumulator": "latest"
   },
   "license": "MIT"
 }
