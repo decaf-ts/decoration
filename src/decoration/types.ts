@@ -1,4 +1,4 @@
-import { DecoratorData } from "./Decoration";
+import { DecoratorData, ExtendDecoratorData } from "./Decoration";
 
 /**
  * @description Interface for the final stage of the decoration builder pattern.
@@ -32,7 +32,7 @@ export interface DecorationBuilderEnd {
    * @param {...DecoratorData} decorators Additional decorators to add.
    * @return {DecorationBuilderBuild} The build stage of the builder pattern.
    */
-  extend(...decorators: DecoratorData[]): DecorationBuilderBuild;
+  extend(...decorators: ExtendDecoratorData[]): DecorationBuilderBuild;
 }
 
 /**
