@@ -75,5 +75,8 @@
   "devDependencies": {
     "@decaf-ts/utils": "latest"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "reflect-metadata": "^0.2.2"
+  }
 }
