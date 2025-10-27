@@ -105,5 +105,9 @@
     "reflect-metadata": "^0.2.2",
     "typed-object-accumulator": "latest"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "better-docs": "^2.7.3",
+    "taffydb": "^2.7.3"
+  }
 }
