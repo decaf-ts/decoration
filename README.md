@@ -3,7 +3,6 @@
 
 The decoration module provides a small, composable system for building and applying TypeScript decorators with flavour-aware resolution and a centralized runtime Metadata store. It lets you define base decorators, provide framework-specific overrides and extensions ("flavours"), and record/read rich metadata for classes and their members at runtime.
 
-
 ![Licence](https://img.shields.io/github/license/decaf-ts/ts-workspace.svg?style=plastic)
 ![GitHub language count](https://img.shields.io/github/languages/count/decaf-ts/ts-workspace?style=plastic)
 ![GitHub top language](https://img.shields.io/github/languages/top/decaf-ts/ts-workspace?style=plastic)
@@ -26,6 +25,9 @@ The decoration module provides a small, composable system for building and apply
 ![NPM Version](https://img.shields.io/badge/dynamic/json.svg?url=https%3A%2F%2Fraw.githubusercontent.com%2Fbadges%2Fshields%2Fmaster%2Fpackage.json&label=NPM&query=$.engines.npm&colorB=purple)
 
 Documentation available [here](https://decaf-ts.github.io/ts-workspace/)
+
+Minimal size: 2.7 KB kb gzipped
+
 
 # Description
 
