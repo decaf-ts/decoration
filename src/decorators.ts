@@ -14,12 +14,24 @@ import { Decoration } from "./decoration/Decoration";
 export function metadata(key: string, value: any) {
   return function metadata(
     model: any,
-
     prop?: any,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     descriptor?: PropertyDescriptor | number
   ) {
     Metadata.set(prop ? model.constructor : model, key, value);
+  };
+}
+
+export function metadataArray(key: string, ...data: any[]) {
+  return function metadataArray(
+    target: any,
+    propertyKey?: any,
+    descriptor?: any
+  ) {
+    const existingData = Metadata.get(target, key) || [];
+    const metaKey = propertyKey ? Metadata.key(key, propertyKey) : key;
+    const arr = [metadata(metaKey, [...new Set([...existingData, ...data])])];
+    return apply(...arr)(target, propertyKey, descriptor);
   };
 }
 
