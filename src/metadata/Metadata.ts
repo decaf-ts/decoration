@@ -159,7 +159,7 @@ export class Metadata {
    */
   static properties(model: Constructor): string[] | undefined {
     const meta = this.get(model);
-    if (!meta) return undefined;
+    if (!meta || !meta.properties) return undefined;
     return Object.keys(meta.properties);
   }
 
