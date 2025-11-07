@@ -106,6 +106,12 @@ Practical examples for every exported surface of **@decaf-ts/decoration**. All s
 
 The `Decoration` class exposes a fluent builder that lets you define base decorators, add flavour-specific extras, or override behaviour entirely.
 
+Important behaviour note:
+- Calling `define()` registers (or replaces) the *base* decorators for a key/flavour. If you call `define()` again for the same key/flavour, the previously registered base decorators are replaced with the new ones.
+- Calling `extend()` (or providing extras) registers additional flavour-specific decorators that are applied after the base decorators. Crucially, calls to `define()` will NOT remove or clear previously registered extras — extras persist until they are explicitly changed via `extend()` (or a `define()`/`apply()` that provides explicit extras).
+
+These guarantees let you safely replace base behaviour without losing already-registered platform-specific additions.
+
 ### 1. Register base decorators for the default flavour
 
 ```ts
@@ -129,6 +135,47 @@ class DefaultComponent {}
 
 (DefaultComponent as any).__isComponent; // true
 (DefaultComponent as any).__tag; // "base"
+```
+
+### Replace base decorators (base only — extras persist)
+
+If you need to change the base behaviour later, call `define()` again for the same key/flavour — this REPLACES the previously registered base decorators but does not remove extras that were registered with `extend()`.
+
+```ts
+const calls: string[] = [];
+
+const baseA = () =>
+  Decoration.for("widget")
+    .define(((t: any) => {
+      calls.push(`baseA:${t.name}`);
+    }) as any)
+    .apply();
+
+Decoration.for("widget")
+  .extend(((t: any) => {
+    calls.push(`extra:${t.name}`);
+  }) as any)
+  .apply();
+
+@baseA()
+class Widget1 {}
+
+// Later we replace the base behaviour for the same key. Extras remain.
+Decoration.for("widget")
+  .define(((t: any) => {
+    calls.push(`baseB:${t.name}`);
+  }) as any)
+  .apply();
+
+@Decoration.for("widget").apply()
+class Widget2 {}
+
+// calls === [
+//  `baseA:Widget1`,
+//  `extra:Widget1`,
+//  `baseB:Widget2`,   // base replaced
+//  `extra:Widget2`    // extra persists
+// ]
 ```
 
 ### 2. Extend base decorators with flavour-specific extras
@@ -454,6 +501,7 @@ console.log(DecorationKeys.PROPERTIES); // "properties"
   - strategy;
   - builder;
   - etc;
+```
 
 
 ### Related

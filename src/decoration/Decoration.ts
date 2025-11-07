@@ -176,10 +176,16 @@ export class Decoration implements IDecorationBuilder {
       throw new Error(
         "Must provide overrides or addons to override or extend decaf's decorators"
       );
-    (this as any)[addon ? "extras" : "decorators"] = new Set([
-      ...(this[addon ? "extras" : "decorators"] || new Set()).values(),
-      ...decorators,
-    ]);
+    // For addon (extend) we merge with existing extras; for base (define) we replace
+    if (addon) {
+      (this as any).extras = new Set([
+        ...(this.extras || new Set()).values(),
+        ...decorators,
+      ]);
+    } else {
+      // replace any previously configured base decorators on this builder
+      (this as any).decorators = new Set([...decorators]);
+    }
 
     return this;
   }
@@ -360,11 +366,19 @@ export class Decoration implements IDecorationBuilder {
     const decoratorsToRegister =
       this.decorators || existingDecorators || new Set<DecoratorData>();
 
+    // If this builder explicitly configured decorators (via define), we want
+    // to replace previously registered base decorators. Previously we cleared
+    // extras when define() was called — restore the behaviour where define()
+    // does not remove previously registered extras unless extras were
+    // explicitly supplied.
+    const extrasToRegister =
+      typeof this.extras !== "undefined" ? this.extras : undefined;
+
     Decoration.register(
       this.key,
       this.flavour,
       decoratorsToRegister,
-      this.extras
+      extrasToRegister
     );
     return this.decoratorFactory(this.key, this.flavour);
   }
@@ -395,8 +409,13 @@ export class Decoration implements IDecorationBuilder {
     if (!Decoration.decorators[key]) Decoration.decorators[key] = {};
     if (!Decoration.decorators[key][flavour])
       Decoration.decorators[key][flavour] = {};
-    if (decorators) Decoration.decorators[key][flavour].decorators = decorators;
-    if (extras) Decoration.decorators[key][flavour].extras = extras;
+    // Always set decorators. Only overwrite extras when an explicit value is
+    // provided so that calling define() without extras does not accidentally
+    // clear previously registered extras.
+    Decoration.decorators[key][flavour].decorators = decorators;
+    if (typeof extras !== "undefined") {
+      Decoration.decorators[key][flavour].extras = extras;
+    }
   }
 
   /**
