@@ -1,4 +1,4 @@
-import { Decoration, metadata, Metadata } from "../../src/index";
+import { Decoration, metadata, Metadata, uses } from "../../src/index";
 
 describe("Multiple Decoration Compatibility", () => {
   it("Applies multiple decorations without conflict", () => {
@@ -70,21 +70,19 @@ describe("Multiple Decoration Compatibility", () => {
       constructor() {}
     }
 
+    @uses("2")
     class Obj2 {
       @decorator("first", 2)
       prop!: string;
       constructor() {}
     }
 
-    metadata("META", "2")(Obj2);
-
+    @uses("3")
     class Obj3 {
       @decorator("first", 3)
       prop!: string;
       constructor() {}
     }
-
-    metadata("META", "3")(Obj3);
 
     const obj1 = new Obj1();
     obj1.prop = "test1";

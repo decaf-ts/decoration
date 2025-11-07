@@ -21,6 +21,10 @@ function defaultFlavourResolver(target: object) {
   return DefaultFlavour;
 }
 
+function flavourResolver(target: object) {
+  // implement this mathing @uses
+}
+
 /**
  * @description Union type covering supported decorator kinds.
  * @summary Represents any of the standard TypeScript decorator signatures (class, property, or method), enabling flexible registration and application within the Decoration system.

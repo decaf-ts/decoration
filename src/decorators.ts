@@ -1,5 +1,5 @@
 import { Metadata } from "./metadata/Metadata";
-import { DecorationKeys } from "./constants";
+import { DecorationKeys, DefaultFlavour } from "./constants";
 import { Decoration } from "./decoration/Decoration";
 
 /**
@@ -33,6 +33,12 @@ export function metadataArray(key: string, ...data: any[]) {
     const arr = [metadata(metaKey, [...new Set([...existingData, ...data])])];
     return apply(...arr)(target, propertyKey, descriptor);
   };
+}
+
+export function uses(flavour: string = DefaultFlavour){
+  return (object: object) {
+     // Store the flavour in the metadata for the class
+  }
 }
 
 /**
