@@ -4,20 +4,8 @@
  * @module decoration
  */
 
-import { Metadata } from "./metadata/index";
-
 export * from "./decoration";
 export * from "./metadata";
 export * from "./constants";
 export * from "./decorators";
-
-/**
- * @description Current version of the decoration package.
- * @summary Stores the semantic version string registered through {@link Metadata.registerLibrary}.
- * @type {string}
- * @const VERSION
- * @memberOf module:decoration
- */
-export const VERSION = "##VERSION##";
-
-Metadata.registerLibrary("@decaf-ts/decoration", VERSION);
+export * from "./version";

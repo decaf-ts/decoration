@@ -1,6 +1,7 @@
 import { BasicMetadata, Constructor } from "./types";
 import { DecorationKeys, ObjectKeySplitter } from "../constants";
 import "reflect-metadata";
+import { PACKAGE_NAME, VERSION } from "../version";
 
 /**
  * @description Retrieves a nested value from an object given a path.
@@ -541,3 +542,5 @@ export class Metadata {
     return strs.join(this.splitter);
   }
 }
+
+Metadata.registerLibrary(PACKAGE_NAME, VERSION);
