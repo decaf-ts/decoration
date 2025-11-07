@@ -70,19 +70,21 @@ describe("Multiple Decoration Compatibility", () => {
       constructor() {}
     }
 
-    @metadata("META", "2")
     class Obj2 {
       @decorator("first", 2)
       prop!: string;
       constructor() {}
     }
 
-    @metadata("META", "3")
+    metadata("META", "2")(Obj2);
+
     class Obj3 {
       @decorator("first", 3)
       prop!: string;
       constructor() {}
     }
+
+    metadata("META", "3")(Obj3);
 
     const obj1 = new Obj1();
     obj1.prop = "test1";
