@@ -43,6 +43,8 @@ export enum DecorationKeys {
   CONSTRUCTOR = "__original",
   /** @description Collected parameter metadata for configured decorators. */
   PARAMETERS = "parameters",
+  /** @description identifies the decoration flavour. */
+  FLAVOUR = "flavour",
   /** @description Reflect metadata key for a property's design type. */
   DESIGN_TYPE = "design:type",
   /** @description Reflect metadata key for recorded constructor parameter types. */

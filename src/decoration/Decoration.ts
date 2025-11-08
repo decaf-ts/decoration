@@ -6,8 +6,10 @@ import {
   FlavourResolver,
   IDecorationBuilder,
 } from "./types";
-import { DefaultFlavour } from "../constants";
-import { uses } from "../decorators";
+import { DecorationKeys, DefaultFlavour } from "../constants";
+// import { uses } from "../decorators";
+import { Metadata } from "../metadata/index";
+import { metadata, uses } from "../decorators";
 
 /**
  * @description Default resolver that returns the current default flavour.
@@ -17,10 +19,12 @@ import { uses } from "../decorators";
  * @function flavourResolver
  * @memberOf module:decoration
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function flavourResolver(target: object) {
-  // implement this mathing @uses
-  return DefaultFlavour;
+function flavourResolver(target: object): string {
+  const meta = Metadata.get(target.constructor as any, DecorationKeys.FLAVOUR);
+  if (!meta) {
+    return DefaultFlavour;
+  }
+  return meta;
 }
 
 /**
