@@ -82,7 +82,7 @@ function f2(str: string, obj: object) {
 
 const flavour = "flavour2";
 
-Decoration.setFlavourResolver(() => {
+Decoration["setFlavourResolver"](() => {
   return flavour;
 });
 

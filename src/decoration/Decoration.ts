@@ -23,6 +23,7 @@ function defaultFlavourResolver(target: object) {
 
 function flavourResolver(target: object) {
   // implement this mathing @uses
+  return DefaultFlavour;
 }
 
 /**
@@ -70,6 +71,14 @@ export type ExtendDecoratorData =
   | DecoratorTypes
   | Omit<DecoratorFactoryArgs, "args">;
 type StoredDecoratorData = DecoratorData | ExtendDecoratorData;
+
+interface PendingDecorator {
+  target: any;
+  propertyKey?: string;
+  callback: (flavour: string) => void;
+  key: string; // unique identifier
+}
+
 /**
  * @description A decorator management class that handles flavoured decorators.
  * @summary The Decoration class provides a builder pattern for creating and managing decorators with different flavours. It supports registering, extending, and applying decorators with context-aware flavour resolution, allowing framework-specific implementations while maintaining a consistent API.
@@ -110,6 +119,9 @@ type StoredDecoratorData = DecoratorData | ExtendDecoratorData;
  *   F-->>C: decorated target
  */
 export class Decoration implements IDecorationBuilder {
+  private static pendingDecorators: PendingDecorator[] = [];
+  private static processedTargets: WeakSet<any> = new WeakSet();
+
   /**
    * @description Static map of registered decorators.
    * @summary Stores all registered decorators organised by key and flavour.
@@ -129,7 +141,7 @@ export class Decoration implements IDecorationBuilder {
    * @description Function to resolve flavour from a target.
    * @summary Resolver function that determines the appropriate flavour for a given target.
    */
-  private static flavourResolver: FlavourResolver = defaultFlavourResolver;
+  private static flavourResolver: FlavourResolver = flavourResolver;
 
   /**
    * @description Set of decorators for the current context.
@@ -147,6 +159,83 @@ export class Decoration implements IDecorationBuilder {
   private key?: string;
 
   constructor(private flavour: string = DefaultFlavour) {}
+
+  protected static resolve(target: any): string {
+    return this.flavourResolver(target);
+  }
+
+  /**
+   * Register a decorator operation to be executed after class decorator runs.
+   * This solves the execution order issue: property decorators run before class decorators.
+   *
+   * @param target - The class being decorated
+   * @param callback - Function to execute once flavour is resolved
+   * @param propertyKey - Optional property key for property decorators
+   * @returns Unique key for this registration
+   */
+  protected static registerPendingDecorator(
+    target: any,
+    callback: (flavour: string) => void,
+    propertyKey?: string
+  ): string {
+    const key = `${target.name || "anonymous"}:${propertyKey || "class"}:${Date.now()}`;
+
+    this.pendingDecorators.push({
+      target,
+      callback,
+      propertyKey,
+      key,
+    });
+
+    return key;
+  }
+
+  /**
+   * Unregister a pending decorator if needed
+   */
+  protected static unregisterPendingDecorator(key: string): void {
+    this.pendingDecorators = this.pendingDecorators.filter(
+      (d) => d.key !== key
+    );
+  }
+
+  /**
+   * Resolve all pending decorators for a given target with the resolved flavour
+   */
+  protected static resolvePendingDecorators(
+    target: any,
+    flavour: string
+  ): void {
+    // Prevent duplicate processing
+    if (this.processedTargets.has(target)) {
+      return;
+    }
+
+    const pending = this.pendingDecorators.filter(
+      (item) =>
+        item.target === target || item.target.prototype === target.prototype
+    );
+
+    // Execute callbacks in registration order
+    pending.forEach((item) => {
+      try {
+        item.callback(flavour);
+      } catch (error) {
+        console.error(
+          `Error resolving pending decorator for ${target.name}.${item.propertyKey}:`,
+          error
+        );
+      }
+    });
+
+    // Remove processed decorators
+    this.pendingDecorators = this.pendingDecorators.filter(
+      (item) =>
+        item.target !== target && item.target.prototype !== target.prototype
+    );
+
+    this.processedTargets.add(target);
+  }
 
   /**
    * @description Sets the key for the decoration builder.
@@ -258,7 +347,7 @@ export class Decoration implements IDecorationBuilder {
       propertyKey?: any,
       descriptor?: TypedPropertyDescriptor<any>
     ) {
-      const flavour = Decoration.flavourResolver(target);
+      const flavour = Decoration.resolve(target);
       const cache = Decoration.decorators[key];
       let decorators;
       const extras = cache[flavour]
@@ -428,7 +517,7 @@ export class Decoration implements IDecorationBuilder {
    * @param {FlavourResolver} resolver Function to resolve flavours.
    * @return {void}
    */
-  static setFlavourResolver(resolver: FlavourResolver) {
+  protected static setFlavourResolver(resolver: FlavourResolver) {
     Decoration.flavourResolver = resolver;
   }
 

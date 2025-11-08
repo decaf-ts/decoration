@@ -35,10 +35,11 @@ export function metadataArray(key: string, ...data: any[]) {
   };
 }
 
-export function uses(flavour: string = DefaultFlavour){
-  return (object: object) {
-     // Store the flavour in the metadata for the class
-  }
+export function uses(flavour: string = DefaultFlavour) {
+  return (object: any) => {
+    Decoration["resolvePendingDecorators"](object, flavour);
+    return object;
+  };
 }
 
 /**
@@ -90,24 +91,24 @@ export function prop() {
  *   P-->>U: parameter recorded
  */
 export function param() {
-  return function param(
-    model: object,
-    prop: string | symbol | undefined,
-    index: number
-  ) {
+  return function param(model: object, prop?: any, index?: number) {
     if (!prop)
       throw new Error(`The @param decorator can only be applied to methods`);
     method()(model, prop, Object.getOwnPropertyDescriptor(model, prop));
     const paramTpes = Metadata.params(model.constructor as any, prop as string);
     if (!paramTpes)
       throw new Error(`Missing parameter types for ${String(prop)}`);
-    if (index >= paramTpes.length)
+    if ((index as number) >= paramTpes.length)
       throw new Error(
         `Parameter index ${index} out of range for ${String(prop)}`
       );
     metadata(
-      Metadata.key(DecorationKeys.METHODS, prop as string, index.toString()),
-      paramTpes[index]
+      Metadata.key(
+        DecorationKeys.METHODS,
+        prop as string,
+        (index as number).toString()
+      ),
+      paramTpes[index as number]
     )(model, prop);
   };
 }

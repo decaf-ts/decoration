@@ -4,7 +4,6 @@ import { DefaultFlavour } from "../../src/constants";
 
 describe("Decoration builder", () => {
   const resetState = () => {
-    Decoration.setFlavourResolver(() => DefaultFlavour);
     (Decoration as any).decorators = {};
   };
 
@@ -32,7 +31,9 @@ describe("Decoration builder", () => {
       .define({
         decorator: (label: string) => {
           return ((target: any) => {
-            calls.push(`base:${label}:${(target as any).name ?? target.constructor.name}`);
+            calls.push(
+              `base:${label}:${(target as any).name ?? target.constructor.name}`
+            );
             return target;
           }) as ClassDecorator;
         },
@@ -44,7 +45,9 @@ describe("Decoration builder", () => {
       .extend({
         decorator: (label: string) => {
           return ((target: any) => {
-            calls.push(`extended:${label}:${(target as any).name ?? target.constructor.name}`);
+            calls.push(
+              `extended:${label}:${(target as any).name ?? target.constructor.name}`
+            );
             return target;
           }) as ClassDecorator;
         },
@@ -93,7 +96,7 @@ describe("Decoration builder", () => {
     @decorate
     class DefaultDecorated {}
 
-    Decoration.setFlavourResolver(() => "f1");
+    Decoration["setFlavourResolver"](() => "f1");
 
     @decorate
     class FlavouredDecorated {}
@@ -139,19 +142,19 @@ describe("Decoration builder", () => {
   it("define should throw when multiple overridable decorators are provided", () => {
     const builder = Decoration.for("multi");
     const overridable = {
-      decorator: (() => ((target: any) => target)) as any,
+      decorator: (() => (target: any) => target) as any,
       args: [],
     };
 
-    expect(() => builder.define(overridable as any, overridable as any)).toThrow(
-      /only one is allowed/
-    );
+    expect(() =>
+      builder.define(overridable as any, overridable as any)
+    ).toThrow(/only one is allowed/);
   });
 
   it("extend should throw when multiple overridable decorators are provided", () => {
     const base: ClassDecorator = (target) => target;
     const overridable = {
-      decorator: (() => ((target: any) => target)) as any,
+      decorator: (() => (target: any) => target) as any,
       args: [],
     };
 
@@ -159,9 +162,9 @@ describe("Decoration builder", () => {
       .for("multi-extend")
       .define(base);
 
-    expect(() => builder.extend(overridable as any, overridable as any)).toThrow(
-      /only one is allowed/
-    );
+    expect(() =>
+      builder.extend(overridable as any, overridable as any)
+    ).toThrow(/only one is allowed/);
   });
 
   it("register should enforce required arguments", () => {

@@ -1,4 +1,4 @@
-import { Decoration, metadata, Metadata, uses } from "../../src/index";
+import { Decoration, uses } from "../../src/index";
 
 describe("Multiple Decoration Compatibility", () => {
   it("Applies multiple decorations without conflict", () => {
@@ -58,11 +58,6 @@ describe("Multiple Decoration Compatibility", () => {
         decorator: decorator3,
       } as any)
       .apply();
-
-    Decoration.setFlavourResolver((obj: object) => {
-      const meta = Metadata.get(obj.constructor as any);
-      return meta ? meta["META"] : undefined;
-    });
 
     class Obj1 {
       @decorator("first", 1)

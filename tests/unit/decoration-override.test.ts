@@ -55,7 +55,7 @@ function f5() {
 }
 
 const flavour = "flavour2";
-Decoration.setFlavourResolver(() => {
+Decoration["setFlavourResolver"](() => {
   return flavour;
 });
 Decoration.flavouredAs(flavour).for("f4").define(f1()).apply();

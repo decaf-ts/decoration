@@ -4,7 +4,7 @@ import { DefaultFlavour } from "../../src/constants";
 
 describe("Decoration.define replacement", () => {
   const resetState = () => {
-    Decoration.setFlavourResolver(() => DefaultFlavour);
+    Decoration["setFlavourResolver"](() => DefaultFlavour);
     (Decoration as any).decorators = {};
   };
 

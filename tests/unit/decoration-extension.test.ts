@@ -43,7 +43,7 @@ function f5() {
 }
 
 const flavour = "flavour3";
-Decoration.setFlavourResolver(() => {
+Decoration["setFlavourResolver"](() => {
   return flavour;
 });
 Decoration.flavouredAs(flavour).for("f4").extend(f3()).apply();
