@@ -270,10 +270,10 @@ export function description(desc: string) {
       descriptor?: any
     ) {
       return metadata(
-        [
+        Metadata.key(
           DecorationKeys.DESCRIPTION,
-          prop ? prop.toString() : DecorationKeys.CLASS,
-        ].join(Metadata.splitter),
+          prop ? prop.toString() : DecorationKeys.CLASS
+        ),
         desc
       )(original, prop, descriptor);
     };

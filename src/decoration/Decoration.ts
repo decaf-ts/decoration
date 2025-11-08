@@ -495,6 +495,7 @@ export class Decoration implements IDecorationBuilder {
         writable: false,
       });
     } catch (e) {
+      console.error(e);
       // Ignore environments that forbid redefining function name
     }
 
@@ -531,6 +532,10 @@ export class Decoration implements IDecorationBuilder {
     if (typeof extras !== "undefined") {
       Decoration.decorators[key][flavour].extras = extras;
     }
+  }
+
+  static setResolver(resolver: FlavourResolver) {
+    Decoration.flavourResolver = resolver;
   }
 
   /**
