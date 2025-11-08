@@ -468,7 +468,7 @@ export class Decoration implements IDecorationBuilder {
       extrasToRegister
     );
 
-    return (target: any, propertyKey?: any, descriptor?: any) => {
+    const wrapper = (target: any, propertyKey?: any, descriptor?: any) => {
       if (propertyKey) {
         uses()(target.constructor); // always use @uses on the class to ensure flavour resolution
       }
@@ -487,6 +487,18 @@ export class Decoration implements IDecorationBuilder {
         descriptor
       );
     };
+
+    // Give the wrapper a readable name so tests (and debuggers) can inspect it.
+    try {
+      Object.defineProperty(wrapper, "name", {
+        value: [this.flavour, key].join("_decorator_for_"),
+        writable: false,
+      });
+    } catch (e) {
+      // Ignore environments that forbid redefining function name
+    }
+
+    return wrapper;
   }
 
   /**
