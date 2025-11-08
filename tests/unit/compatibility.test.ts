@@ -1,4 +1,10 @@
-import { Decoration, DecorationKeys, Metadata, uses } from "../../src/index";
+import {
+  Decoration,
+  DecorationKeys,
+  metadata,
+  Metadata,
+  uses,
+} from "../../src/index";
 
 describe("Multiple Decoration Compatibility", () => {
   it("Applies multiple decorations without conflict", () => {
@@ -85,14 +91,13 @@ describe("Multiple Decoration Compatibility", () => {
 
     const obj1 = new Obj1();
     obj1.prop = "test1";
-    expect(f1).toHaveBeenCalledWith("first", 1, {}, "prop", undefined);
-
     const obj2 = new Obj2();
     obj2.prop = "test2";
-    expect(f2).toHaveBeenCalledWith("first", 2, {}, "prop", undefined);
-
     const obj3 = new Obj3();
     obj3.prop = "test3";
+
+    expect(f1).toHaveBeenCalledWith("first", 1, {}, "prop", undefined);
+    expect(f2).toHaveBeenCalledWith("first", 2, {}, "prop", undefined);
     expect(f3).toHaveBeenCalledWith("first", 3, {}, "prop", undefined);
   });
 });

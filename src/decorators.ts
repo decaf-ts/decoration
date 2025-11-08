@@ -37,7 +37,7 @@ export function metadataArray(key: string, ...data: any[]) {
 
 export function uses(flavour: string = DefaultFlavour) {
   return (object: any) => {
-    Metadata.set(object.constructor, DecorationKeys.FLAVOUR, flavour);
+    Metadata.set(object, DecorationKeys.FLAVOUR, flavour);
     const meta = Metadata.get(object, DecorationKeys.FLAVOUR);
     Decoration["resolvePendingDecorators"](object, flavour);
     return object;

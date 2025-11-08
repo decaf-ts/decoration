@@ -7,9 +7,8 @@ import {
   IDecorationBuilder,
 } from "./types";
 import { DecorationKeys, DefaultFlavour } from "../constants";
-// import { uses } from "../decorators";
-import { Metadata } from "../metadata/index";
-import { metadata, uses } from "../decorators";
+import { Metadata } from "../metadata/Metadata";
+import { uses } from "../decorators";
 
 /**
  * @description Default resolver that returns the current default flavour.
