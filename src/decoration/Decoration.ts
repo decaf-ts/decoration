@@ -14,14 +14,10 @@ import { uses } from "../decorators";
  * @summary Resolves the flavour for a given target by always returning the library's `DefaultFlavour` value.
  * @param {object} target Target object being decorated.
  * @return {string} Resolved flavour identifier.
- * @function defaultFlavourResolver
+ * @function flavourResolver
  * @memberOf module:decoration
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-function defaultFlavourResolver(target: object) {
-  return DefaultFlavour;
-}
-
 function flavourResolver(target: object) {
   // implement this mathing @uses
   return DefaultFlavour;
@@ -160,10 +156,6 @@ export class Decoration implements IDecorationBuilder {
   private key?: string;
 
   constructor(private flavour: string = DefaultFlavour) {}
-
-  protected static resolve(target: any): string {
-    return this.flavourResolver(target);
-  }
 
   /**
    * Register a decorator operation to be executed after class decorator runs.
@@ -348,7 +340,7 @@ export class Decoration implements IDecorationBuilder {
       propertyKey?: any,
       descriptor?: TypedPropertyDescriptor<any>
     ) {
-      const flavour = Decoration.resolve(target);
+      const flavour = Decoration.flavourResolver(target);
       const cache = Decoration.decorators[key];
       let decorators;
       const extras = cache[flavour]
