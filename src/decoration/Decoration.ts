@@ -7,6 +7,7 @@ import {
   IDecorationBuilder,
 } from "./types";
 import { DefaultFlavour } from "../constants";
+import { uses } from "../decorators";
 
 /**
  * @description Default resolver that returns the current default flavour.
@@ -473,7 +474,17 @@ export class Decoration implements IDecorationBuilder {
       decoratorsToRegister,
       extrasToRegister
     );
-    return this.decoratorFactory(this.key, this.flavour);
+
+    return (target: any, propertyKey?: any, descriptor?: any) => {
+      if (!propertyKey) {
+        uses()(target.constructor); // always use @uses on the class to ensure flavour resolution
+      }
+      return this.decoratorFactory(this.key as string, this.flavour)(
+        target,
+        propertyKey,
+        descriptor
+      );
+    };
   }
 
   /**
