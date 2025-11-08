@@ -472,10 +472,11 @@ export class Decoration implements IDecorationBuilder {
       if (propertyKey) {
         uses()(target.constructor); // always use @uses on the class to ensure flavour resolution
       }
+      // Theorized deferred resolution (disabled for now)
       // Decoration.registerPendingDecorator(
       //   target,
       //   (resolvedFlavour: string) => {
-      //     this.decoratorFactory(key, resolvedFlavour);
+      //     return this.decoratorFactory(key, resolvedFlavour);
       //   },
       //   propertyKey
       // );
