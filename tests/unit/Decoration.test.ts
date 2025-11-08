@@ -96,7 +96,7 @@ describe("Decoration builder", () => {
     @decorate
     class DefaultDecorated {}
 
-    Decoration["setFlavourResolver"](() => "f1");
+    Decoration["flavourResolver"] = () => "f1";
 
     @decorate
     class FlavouredDecorated {}
