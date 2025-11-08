@@ -455,16 +455,14 @@ export class Decoration implements IDecorationBuilder {
   ) => any {
     if (!this.key)
       throw new Error("No key provided for the decoration builder");
+
+    const key = this.key;
+
     const existingDecorators =
       Decoration.decorators[this.key]?.[this.flavour]?.decorators;
     const decoratorsToRegister =
       this.decorators || existingDecorators || new Set<DecoratorData>();
 
-    // If this builder explicitly configured decorators (via define), we want
-    // to replace previously registered base decorators. Previously we cleared
-    // extras when define() was called — restore the behaviour where define()
-    // does not remove previously registered extras unless extras were
-    // explicitly supplied.
     const extrasToRegister =
       typeof this.extras !== "undefined" ? this.extras : undefined;
 
@@ -476,10 +474,18 @@ export class Decoration implements IDecorationBuilder {
     );
 
     return (target: any, propertyKey?: any, descriptor?: any) => {
-      if (!propertyKey) {
+      if (propertyKey) {
         uses()(target.constructor); // always use @uses on the class to ensure flavour resolution
       }
-      return this.decoratorFactory(this.key as string, this.flavour)(
+      // Decoration.registerPendingDecorator(
+      //   target,
+      //   (resolvedFlavour: string) => {
+      //     this.decoratorFactory(key, resolvedFlavour);
+      //   },
+      //   propertyKey
+      // );
+      // return propertyKey ? descriptor : target;
+      return this.decoratorFactory(key as string, this.flavour)(
         target,
         propertyKey,
         descriptor
@@ -513,23 +519,10 @@ export class Decoration implements IDecorationBuilder {
     if (!Decoration.decorators[key]) Decoration.decorators[key] = {};
     if (!Decoration.decorators[key][flavour])
       Decoration.decorators[key][flavour] = {};
-    // Always set decorators. Only overwrite extras when an explicit value is
-    // provided so that calling define() without extras does not accidentally
-    // clear previously registered extras.
     Decoration.decorators[key][flavour].decorators = decorators;
     if (typeof extras !== "undefined") {
       Decoration.decorators[key][flavour].extras = extras;
     }
-  }
-
-  /**
-   * @description Sets the global flavour resolver.
-   * @summary Configures the function used to determine decorator flavours.
-   * @param {FlavourResolver} resolver Function to resolve flavours.
-   * @return {void}
-   */
-  protected static setFlavourResolver(resolver: FlavourResolver) {
-    Decoration.flavourResolver = resolver;
   }
 
   /**
