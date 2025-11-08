@@ -1,6 +1,7 @@
 import {
   Decoration,
   DecorationKeys,
+  DefaultFlavour,
   metadata,
   Metadata,
   uses,
@@ -88,6 +89,10 @@ describe("Multiple Decoration Compatibility", () => {
     const meta1 = Metadata.get(Obj1, DecorationKeys.FLAVOUR);
     const meta2 = Metadata.get(Obj2, DecorationKeys.FLAVOUR);
     const meta3 = Metadata.get(Obj3, DecorationKeys.FLAVOUR);
+
+    expect(meta1).toEqual(DefaultFlavour);
+    expect(meta2).toEqual("2");
+    expect(meta3).toEqual("3");
 
     const obj1 = new Obj1();
     obj1.prop = "test1";
