@@ -58,7 +58,7 @@ Decoration.flavouredAs(flavour)
   .for("f1")
   .define({
     decorator: report2,
-  })
+  } as any)
   .apply();
 
 describe("dynamic class decoration - override with args", () => {

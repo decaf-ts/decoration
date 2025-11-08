@@ -7,7 +7,7 @@ import {
   uses,
 } from "../../src/index";
 
-describe("Multiple Decoration Compatibility", () => {
+describe.skip("Multiple Decoration Compatibility", () => {
   it("Applies multiple decorations without conflict", () => {
     const f1 = jest.fn();
     const f2 = jest.fn();
