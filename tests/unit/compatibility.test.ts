@@ -2,12 +2,11 @@ import {
   Decoration,
   DecorationKeys,
   DefaultFlavour,
-  metadata,
   Metadata,
   uses,
 } from "../../src/index";
 
-describe.skip("Multiple Decoration Compatibility", () => {
+describe("Multiple Decoration Compatibility", () => {
   it("Applies multiple decorations without conflict", () => {
     const f1 = jest.fn();
     const f2 = jest.fn();
