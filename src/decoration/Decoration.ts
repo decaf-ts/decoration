@@ -82,6 +82,7 @@ interface PendingDecorator {
   ) => PropertyDecorator | MethodDecorator;
   argsOverride?: Record<number, any[]>;
   key: string; // unique identifier
+  lastAppliedPass?: number;
 }
 
 interface TargetDecorationState {
@@ -89,6 +90,10 @@ interface TargetDecorationState {
   flavour?: string;
   directApply?: boolean;
   resolved?: boolean;
+  lastAppliedFlavour?: string;
+  appliedCount?: number;
+  applying?: boolean;
+  passId?: number;
 }
 
 /**
@@ -198,11 +203,24 @@ export class Decoration implements IDecorationBuilder {
     flavour: string
   ): void {
     try {
-      entry.callback(flavour, entry.argsOverride)(
-        entry.target,
-        entry.propertyKey as string | symbol,
-        entry.descriptor as TypedPropertyDescriptor<any>
-      );
+      const descriptorResult = entry
+        .callback(flavour, entry.argsOverride)(
+          entry.target,
+          entry.propertyKey as string | symbol,
+          entry.descriptor as TypedPropertyDescriptor<any>
+        );
+
+      if (
+        typeof entry.propertyKey !== "undefined" &&
+        descriptorResult &&
+        entry.target
+      ) {
+        Object.defineProperty(
+          entry.target,
+          entry.propertyKey,
+          descriptorResult as PropertyDescriptor
+        );
+      }
     } catch (error) {
       console.error(
         `Error resolving pending decorator for ${
@@ -247,12 +265,18 @@ export class Decoration implements IDecorationBuilder {
       key,
     };
 
-    if (state.directApply) {
+    const applyImmediately = () => {
       const flavourToUse =
         state.flavour ||
         Metadata.get(owner, DecorationKeys.FLAVOUR) ||
         DefaultFlavour;
       this.applyPendingEntry(entry, flavourToUse);
+      entry.lastAppliedPass = state.passId;
+      return flavourToUse;
+    };
+
+    if (state.directApply) {
+      const flavourToUse = applyImmediately();
       state.flavour = flavourToUse;
       Metadata.set(owner, DecorationKeys.DECORATION, true);
       return key;
@@ -260,11 +284,16 @@ export class Decoration implements IDecorationBuilder {
 
     state.pending.push(entry);
 
+    if (state.applying) {
+      applyImmediately();
+    }
+
     if (Decoration.flavourResolver !== flavourResolver) {
       try {
         const eagerFlavour = Decoration.flavourResolver(owner);
         if (eagerFlavour && eagerFlavour !== DefaultFlavour) {
           this.resolvePendingDecorators(owner, eagerFlavour);
+          return key;
         }
       } catch {
         // Ignore resolver errors during eager resolution attempts.
@@ -272,73 +301,6 @@ export class Decoration implements IDecorationBuilder {
     }
 
     return key;
-  }
-
-  private static ensureLazyResolution(
-    owner: any,
-    target: any,
-    propertyKey?: string | symbol
-  ): void {
-    if (!owner || typeof propertyKey === "undefined") return;
-    const definitionTarget =
-      typeof target === "function" ? target.prototype : target;
-    if (!definitionTarget) return;
-
-    const descriptor = Object.getOwnPropertyDescriptor(
-      definitionTarget,
-      propertyKey
-    );
-
-    // Skip if another decorator already installed a non-configurable descriptor.
-    if (descriptor && descriptor.configurable === false) return;
-
-    const placeholderGet = function (this: any) {
-      Decoration.resolvePendingDecorators(owner);
-      const resolved = Object.getOwnPropertyDescriptor(
-        definitionTarget,
-        propertyKey
-      );
-      if (resolved?.get && resolved.get !== placeholderGet) {
-        return resolved.get.call(this);
-      }
-      if (resolved && "value" in resolved) {
-        return resolved.value;
-      }
-      return undefined;
-    };
-
-    const placeholderSet = function (this: any, value: any) {
-      Decoration.resolvePendingDecorators(owner);
-      const resolved = Object.getOwnPropertyDescriptor(
-        definitionTarget,
-        propertyKey
-      );
-      if (resolved?.set && resolved.set !== placeholderSet) {
-        resolved.set.call(this, value);
-        return;
-      }
-      Object.defineProperty(this, propertyKey, {
-        configurable: true,
-        writable: true,
-        value,
-      });
-    };
-
-    Object.defineProperty(placeholderGet, "__decafLazy", {
-      value: true,
-      enumerable: false,
-    });
-    Object.defineProperty(placeholderSet, "__decafLazy", {
-      value: true,
-      enumerable: false,
-    });
-
-    Object.defineProperty(definitionTarget, propertyKey, {
-      configurable: true,
-      enumerable: descriptor?.enumerable ?? true,
-      get: placeholderGet,
-      set: placeholderSet,
-    });
   }
 
   protected static resolvePendingDecorators(
@@ -350,9 +312,7 @@ export class Decoration implements IDecorationBuilder {
     if (!owner) return;
 
     const state = this.getTargetState(owner);
-    if (!state.pending.length && !flavour) {
-      return;
-    }
+    if (!state.pending.length && !flavour) return;
 
     const resolvedFlavour =
       flavour ||
@@ -360,16 +320,57 @@ export class Decoration implements IDecorationBuilder {
       Metadata.get(owner, DecorationKeys.FLAVOUR) ||
       DefaultFlavour;
 
-    while (state.pending.length) {
-      const entry = state.pending.shift();
-      if (!entry) continue;
-      this.applyPendingEntry(entry, resolvedFlavour);
+    if (state.applying) return;
+
+    const cursor = state.appliedCount || 0;
+    if (
+      !flavour &&
+      state.lastAppliedFlavour === resolvedFlavour &&
+      cursor >= state.pending.length
+    ) {
+      return;
+    }
+
+    const shouldFinalize =
+      Boolean(flavour && flavour !== DefaultFlavour) || state.directApply;
+    if (!state.pending.length) return;
+
+    const currentPass = (state.passId || 0) + 1;
+    state.passId = currentPass;
+    state.applying = true;
+    try {
+      if (shouldFinalize) {
+        while (state.pending.length) {
+          const entry = state.pending.shift();
+          if (!entry) continue;
+          if (entry.lastAppliedPass === currentPass) continue;
+          this.applyPendingEntry(entry, resolvedFlavour);
+          entry.lastAppliedPass = currentPass;
+        }
+      } else {
+        let index = cursor;
+        while (index < state.pending.length) {
+          const entry = state.pending[index++];
+          if (!entry) continue;
+          if (entry.lastAppliedPass === currentPass) continue;
+          this.applyPendingEntry(entry, resolvedFlavour);
+          entry.lastAppliedPass = currentPass;
+        }
+        state.appliedCount = state.pending.length;
+      }
+    } finally {
+      state.applying = false;
     }
 
     state.flavour = resolvedFlavour;
     state.resolved = true;
-    if (resolvedFlavour !== DefaultFlavour) {
-      state.directApply = true;
+    state.lastAppliedFlavour = resolvedFlavour;
+    if (shouldFinalize) {
+      state.pending.length = 0;
+      state.appliedCount = 0;
+      if (resolvedFlavour !== DefaultFlavour) {
+        state.directApply = true;
+      }
     }
 
     Metadata.set(owner, DecorationKeys.DECORATION, true);
@@ -566,37 +567,49 @@ export class Decoration implements IDecorationBuilder {
       const baseLength = baseDecoratorsList.length;
       const argsOverrides = overrides || {};
 
-      return toApply.reduce(
-        (_, d, index) => {
-          switch (typeof d) {
-            case "object": {
-              const entry = d as any;
-              const candidateIndex = index < baseLength ? index : 0;
-              const overrideArgs =
-                index < baseLength ? argsOverrides[candidateIndex] : undefined;
-              const args =
-                overrideArgs ||
-                ("args" in entry && Array.isArray(entry.args)
-                  ? entry.args
-                  : (baseArgsByIndex[candidateIndex] ??
-                    defaultArgsByIndex[candidateIndex] ??
-                    defaultArgsByIndex[0] ??
-                    []));
+      let currentTarget = target;
+      let currentDescriptor = descriptor;
 
-              return (entry.decorator(...args) as any)(
-                target,
-                propertyKey,
-                descriptor
-              );
-            }
-            case "function":
-              return (d as any)(target, propertyKey, descriptor);
-            default:
-              throw new Error(`Unexpected decorator type: ${typeof d}`);
+      toApply.forEach((d, index) => {
+        let decoratorFn: DecoratorTypes;
+        if (typeof d === "object") {
+          const entry = d as any;
+          const candidateIndex = index < baseLength ? index : 0;
+          const overrideArgs =
+            index < baseLength ? argsOverrides[candidateIndex] : undefined;
+          const args =
+            overrideArgs ||
+            ("args" in entry && Array.isArray(entry.args)
+              ? entry.args
+              : (baseArgsByIndex[candidateIndex] ??
+                defaultArgsByIndex[candidateIndex] ??
+                defaultArgsByIndex[0] ??
+                []));
+          decoratorFn = entry.decorator(...args) as DecoratorTypes;
+        } else if (typeof d === "function") {
+          decoratorFn = d as DecoratorTypes;
+        } else {
+          throw new Error(`Unexpected decorator type: ${typeof d}`);
+        }
+
+        const result = (decoratorFn as any)(
+          typeof propertyKey === "undefined" ? currentTarget : target,
+          propertyKey,
+          currentDescriptor
+        );
+
+        if (typeof propertyKey === "undefined") {
+          if (typeof result === "function") {
+            currentTarget = result;
           }
-        },
-        { target, propertyKey, descriptor }
-      );
+        } else if (typeof result !== "undefined") {
+          currentDescriptor = result;
+        }
+      });
+
+      return typeof propertyKey === "undefined"
+        ? currentTarget
+        : currentDescriptor;
     }
     Object.defineProperty(contextDecorator, "name", {
       value: [(f || "dynamic"), key].join("_decorator_for_"),
@@ -652,7 +665,7 @@ export class Decoration implements IDecorationBuilder {
           descriptor,
           argsOverride
         );
-        Decoration.ensureLazyResolution(owner, target, propertyKey);
+        Decoration.resolvePendingDecorators(owner);
         return descriptor;
       }
 

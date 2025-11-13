@@ -157,6 +157,9 @@ export class Metadata {
     return Symbol.for([obj.toString(), obj.name].join(" - "));
   }
 
+  // No scheduling or readiness tracking here; callers should only
+  // use Reflect.getOwnMetadata to read design:type when needed.
+
   /**
    * @description Lists known property keys for a model.
    * @summary Reads the metadata entry and returns the names of properties that have recorded type information.
