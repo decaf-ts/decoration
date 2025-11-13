@@ -19,9 +19,11 @@ import { uses } from "../decorators";
  * @memberOf module:decoration
  */
 function flavourResolver(target: object): string {
-  const meta = Metadata.get(target.constructor as any, DecorationKeys.FLAVOUR);
+  const meta = Metadata.get(target as any, DecorationKeys.FLAVOUR);
   if (!meta) {
-    return DefaultFlavour;
+    throw new Error(
+      "No metadata available. Did you decorate this with Decoration...apply()?"
+    );
   }
   return meta;
 }
@@ -75,7 +77,8 @@ type StoredDecoratorData = DecoratorData | ExtendDecoratorData;
 interface PendingDecorator {
   target: any;
   propertyKey?: string;
-  callback: (flavour: string) => void;
+  descriptor?: TypedPropertyDescriptor<any>;
+  callback: (flavour: string) => PropertyDecorator | MethodDecorator;
   key: string; // unique identifier
 }
 
@@ -171,15 +174,17 @@ export class Decoration implements IDecorationBuilder {
    */
   protected static registerPendingDecorator(
     target: any,
-    callback: (flavour: string) => void,
-    propertyKey?: string
+    callback: (flavour: string) => PropertyDecorator | MethodDecorator,
+    propertyKey?: string,
+    descriptor?: TypedPropertyDescriptor<any>
   ): string {
     const key = `${target.name || "anonymous"}:${propertyKey || "class"}:${Date.now()}`;
 
     this.pendingDecorators.push({
       target,
-      callback,
       propertyKey,
+      descriptor,
+      callback,
       key,
     });
 
@@ -200,11 +205,16 @@ export class Decoration implements IDecorationBuilder {
    */
   protected static resolvePendingDecorators(
     target: any,
-    flavour: string
+    flavour?: string
   ): void {
     // Prevent duplicate processing
     if (this.processedTargets.has(target)) {
       return;
+    }
+
+    Metadata.set(target, DecorationKeys.DECORATION, "applying");
+    if (!flavour) {
+      flavour = this.flavourResolver(target);
     }
 
     const pending = this.pendingDecorators.filter(
@@ -215,7 +225,11 @@ export class Decoration implements IDecorationBuilder {
     // Execute callbacks in registration order
     pending.forEach((item) => {
       try {
-        item.callback(flavour);
+        item.callback(flavour)(
+          item.target,
+          item.propertyKey as string,
+          item.descriptor as TypedPropertyDescriptor<any>
+        );
       } catch (error) {
         console.error(
           `Error resolving pending decorator for ${target.name}.${item.propertyKey}:`,
@@ -231,6 +245,7 @@ export class Decoration implements IDecorationBuilder {
     );
 
     this.processedTargets.add(target);
+    Metadata.set(target, DecorationKeys.DECORATION, true);
   }
 
   /**
@@ -470,22 +485,23 @@ export class Decoration implements IDecorationBuilder {
 
     const wrapper = (target: any, propertyKey?: any, descriptor?: any) => {
       if (propertyKey) {
-        uses()(target.constructor); // always use @uses on the class to ensure flavour resolution
+        uses(DefaultFlavour)(target.constructor); // always use @uses on the class to ensure flavour resolution
       }
-      // // Theorized deferred resolution (disabled for now)
-      // Decoration.registerPendingDecorator(
-      //   target,
-      //   (resolvedFlavour: string) => {
-      //     return this.decoratorFactory(key, resolvedFlavour);
-      //   },
-      //   propertyKey
-      // );
-      // return propertyKey ? descriptor : target;
-      return this.decoratorFactory(key as string, this.flavour)(
-        target,
+      // Theorized deferred resolution (disabled for now)
+      Decoration.registerPendingDecorator(
+        propertyKey ? target.constructor : target,
+        (resolvedFlavour: string) => {
+          return this.decoratorFactory(key, resolvedFlavour);
+        },
         propertyKey,
         descriptor
       );
+      return propertyKey ? descriptor : target;
+      // return this.decoratorFactory(key as string, this.flavour)(
+      //   target,
+      //   propertyKey,
+      //   descriptor
+      // );
     };
 
     // Give the wrapper a readable name so tests (and debuggers) can inspect it.

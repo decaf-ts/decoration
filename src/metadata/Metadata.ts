@@ -1,7 +1,12 @@
 import { BasicMetadata, Constructor } from "./types";
-import { DecorationKeys, ObjectKeySplitter } from "../constants";
+import {
+  DecorationKeys,
+  DecorationState,
+  ObjectKeySplitter,
+} from "../constants";
 import "reflect-metadata";
 import { PACKAGE_NAME, VERSION } from "../version";
+import { Decoration } from "../decoration/Decoration";
 
 /**
  * @description Retrieves a nested value from an object given a path.
@@ -306,6 +311,11 @@ export class Metadata {
     if (key === DecorationKeys.CONSTRUCTOR) return this.constr(model);
     const resolvedModel = this.constr(model);
     const constructors = this.collectConstructorChain(resolvedModel);
+    constructors
+      .filter((c) => this.isDecorated(c) === DecorationState.PENDING)
+      .forEach((constructor) => {
+        Decoration["resolvePendingDecorators"](constructor);
+      });
     if (constructors.length === 0) {
       const fallbackSymbol = Symbol.for(resolvedModel.toString());
       return this.innerGet(fallbackSymbol, key);
@@ -317,6 +327,15 @@ export class Metadata {
     if (collectedValues.length === 0) return undefined;
 
     return this.mergeMetadataChain(collectedValues);
+  }
+
+  private static isDecorated(model: Constructor): boolean | DecorationState {
+    const resolvedModel = this.constr(model);
+    const meta = this.innerGet(
+      this.Symbol(resolvedModel),
+      DecorationKeys.DECORATION
+    );
+    return meta || false;
   }
 
   /**

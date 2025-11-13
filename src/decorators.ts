@@ -1,5 +1,5 @@
 import { Metadata } from "./metadata/Metadata";
-import { DecorationKeys, DefaultFlavour } from "./constants";
+import { DecorationKeys, DecorationState, DefaultFlavour } from "./constants";
 import { Decoration } from "./decoration/Decoration";
 
 /**
@@ -35,12 +35,15 @@ export function metadataArray(key: string, ...data: any[]) {
   };
 }
 
-export function uses(flavour: string = DefaultFlavour) {
+export function uses(flavour: string) {
   return (object: any) => {
     Metadata.set(object, DecorationKeys.FLAVOUR, flavour);
     // const meta = Metadata.get(object, DecorationKeys.FLAVOUR);
-    if (flavour !== DefaultFlavour)
+    if (flavour !== DefaultFlavour) {
       Decoration["resolvePendingDecorators"](object, flavour);
+    } else {
+      Metadata.set(object, DecorationKeys.DECORATION, DecorationState.PENDING);
+    }
     return object;
   };
 }
