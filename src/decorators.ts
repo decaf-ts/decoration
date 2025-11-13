@@ -39,7 +39,8 @@ export function uses(flavour: string = DefaultFlavour) {
   return (object: any) => {
     Metadata.set(object, DecorationKeys.FLAVOUR, flavour);
     const meta = Metadata.get(object, DecorationKeys.FLAVOUR);
-    Decoration["resolvePendingDecorators"](object, flavour);
+    if (flavour !== DefaultFlavour)
+      Decoration["resolvePendingDecorators"](object, flavour);
     return object;
   };
 }
