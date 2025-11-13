@@ -1,5 +1,5 @@
 import { Metadata } from "./metadata/Metadata";
-import { DecorationKeys, DecorationState, DefaultFlavour } from "./constants";
+import { DecorationKeys, DefaultFlavour } from "./constants";
 import { Decoration } from "./decoration/Decoration";
 
 /**
@@ -18,7 +18,14 @@ export function metadata(key: string, value: any) {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     descriptor?: PropertyDescriptor | number
   ) {
-    Metadata.set(prop ? model.constructor : model, key, value);
+    let targetModel = model;
+    if (prop) {
+      targetModel =
+        typeof model === "function"
+          ? model
+          : (model as { constructor?: any }).constructor || model;
+    }
+    Metadata.set(targetModel, key, value);
   };
 }
 
@@ -42,7 +49,7 @@ export function uses(flavour: string) {
     if (flavour !== DefaultFlavour) {
       Decoration["resolvePendingDecorators"](object, flavour);
     } else {
-      Metadata.set(object, DecorationKeys.DECORATION, DecorationState.PENDING);
+      Decoration["markPending"](object);
     }
     return object;
   };
@@ -58,9 +65,11 @@ export function uses(flavour: string) {
 export function prop() {
   function innerProp() {
     return function innerProp(model: object, prop?: any) {
+      const metadataTarget =
+        typeof model === "function" ? (model as any).prototype : model;
       const designType = Reflect.getOwnMetadata(
         DecorationKeys.DESIGN_TYPE,
-        model,
+        metadataTarget,
         prop
       );
       return metadata(

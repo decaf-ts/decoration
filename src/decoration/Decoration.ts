@@ -6,7 +6,7 @@ import {
   FlavourResolver,
   IDecorationBuilder,
 } from "./types";
-import { DecorationKeys, DefaultFlavour } from "../constants";
+import { DecorationKeys, DecorationState, DefaultFlavour } from "../constants";
 import { Metadata } from "../metadata/Metadata";
 import { uses } from "../decorators";
 
@@ -19,13 +19,10 @@ import { uses } from "../decorators";
  * @memberOf module:decoration
  */
 function flavourResolver(target: object): string {
-  const meta = Metadata.get(target as any, DecorationKeys.FLAVOUR);
-  if (!meta) {
-    throw new Error(
-      "No metadata available. Did you decorate this with Decoration...apply()?"
-    );
-  }
-  return meta;
+  const owner =
+    typeof target === "function" ? target : (target as any)?.constructor;
+  const meta = Metadata.get((owner || target) as any, DecorationKeys.FLAVOUR);
+  return meta ?? DefaultFlavour;
 }
 
 /**
@@ -75,11 +72,23 @@ export type ExtendDecoratorData =
 type StoredDecoratorData = DecoratorData | ExtendDecoratorData;
 
 interface PendingDecorator {
+  owner: any;
   target: any;
-  propertyKey?: string;
-  descriptor?: TypedPropertyDescriptor<any>;
-  callback: (flavour: string) => PropertyDecorator | MethodDecorator;
+  propertyKey?: string | symbol;
+  descriptor?: TypedPropertyDescriptor<any> | number;
+  callback: (
+    flavour: string,
+    overrides?: Record<number, any[]>
+  ) => PropertyDecorator | MethodDecorator;
+  argsOverride?: Record<number, any[]>;
   key: string; // unique identifier
+}
+
+interface TargetDecorationState {
+  pending: PendingDecorator[];
+  flavour?: string;
+  directApply?: boolean;
+  resolved?: boolean;
 }
 
 /**
@@ -122,8 +131,8 @@ interface PendingDecorator {
  *   F-->>C: decorated target
  */
 export class Decoration implements IDecorationBuilder {
-  private static pendingDecorators: PendingDecorator[] = [];
-  private static processedTargets: WeakSet<any> = new WeakSet();
+  private static targetStates: WeakMap<any, TargetDecorationState> =
+    new WeakMap();
 
   /**
    * @description Static map of registered decorators.
@@ -172,80 +181,131 @@ export class Decoration implements IDecorationBuilder {
    * @param propertyKey - Optional property key for property decorators
    * @returns Unique key for this registration
    */
-  protected static registerPendingDecorator(
-    target: any,
-    callback: (flavour: string) => PropertyDecorator | MethodDecorator,
-    propertyKey?: string,
-    descriptor?: TypedPropertyDescriptor<any>
-  ): string {
-    const key = `${target.name || "anonymous"}:${propertyKey || "class"}:${Date.now()}`;
+  private static getTargetState(owner: any): TargetDecorationState {
+    if (!owner) {
+      throw new Error("Invalid target provided to Decoration state tracker");
+    }
+    let state = this.targetStates.get(owner);
+    if (!state) {
+      state = { pending: [], flavour: undefined, directApply: false };
+      this.targetStates.set(owner, state);
+    }
+    return state;
+  }
 
-    this.pendingDecorators.push({
+  private static applyPendingEntry(
+    entry: PendingDecorator,
+    flavour: string
+  ): void {
+    try {
+      entry.callback(flavour, entry.argsOverride)(
+        entry.target,
+        entry.propertyKey as string | symbol,
+        entry.descriptor as TypedPropertyDescriptor<any>
+      );
+    } catch (error) {
+      console.error(
+        `Error resolving pending decorator for ${
+          entry.owner?.name || "anonymous"
+        }.${String(entry.propertyKey)}`,
+        error
+      );
+    }
+  }
+
+  protected static markPending(owner: any): void {
+    if (!owner) return;
+    const state = this.getTargetState(owner);
+    state.resolved = false;
+    if (!state.flavour) state.flavour = DefaultFlavour;
+    Metadata.set(owner, DecorationKeys.DECORATION, DecorationState.PENDING);
+  }
+
+  protected static registerPendingDecorator(
+    owner: any,
+    target: any,
+    callback: (
+      flavour: string,
+      overrides?: Record<number, any[]>
+    ) => PropertyDecorator | MethodDecorator,
+    propertyKey?: string | symbol,
+    descriptor?: TypedPropertyDescriptor<any> | number,
+    argsOverride?: Record<number, any[]>
+  ): string {
+    const key = `${
+      owner?.name || "anonymous"
+    }:${String(propertyKey || "class")}:${Date.now()}:${Math.random()}`;
+
+    const state = this.getTargetState(owner);
+    const entry: PendingDecorator = {
+      owner,
       target,
       propertyKey,
       descriptor,
       callback,
+      argsOverride,
       key,
-    });
+    };
+
+    if (state.directApply) {
+      const flavourToUse =
+        state.flavour ||
+        Metadata.get(owner, DecorationKeys.FLAVOUR) ||
+        DefaultFlavour;
+      this.applyPendingEntry(entry, flavourToUse);
+      state.flavour = flavourToUse;
+      Metadata.set(owner, DecorationKeys.DECORATION, true);
+      return key;
+    }
+
+    state.pending.push(entry);
+
+    if (Decoration.flavourResolver !== flavourResolver) {
+      try {
+        const eagerFlavour = Decoration.flavourResolver(owner);
+        if (eagerFlavour && eagerFlavour !== DefaultFlavour) {
+          this.resolvePendingDecorators(owner, eagerFlavour);
+        }
+      } catch {
+        // Ignore resolver errors during eager resolution attempts.
+      }
+    }
 
     return key;
   }
 
-  /**
-   * Unregister a pending decorator if needed
-   */
-  protected static unregisterPendingDecorator(key: string): void {
-    this.pendingDecorators = this.pendingDecorators.filter(
-      (d) => d.key !== key
-    );
-  }
-
-  /**
-   * Resolve all pending decorators for a given target with the resolved flavour
-   */
   protected static resolvePendingDecorators(
     target: any,
     flavour?: string
   ): void {
-    // Prevent duplicate processing
-    if (this.processedTargets.has(target)) {
+    const owner =
+      typeof target === "function" ? target : target?.constructor || target;
+    if (!owner) return;
+
+    const state = this.getTargetState(owner);
+    if (!state.pending.length && !flavour) {
       return;
     }
 
-    Metadata.set(target, DecorationKeys.DECORATION, "applying");
-    if (!flavour) {
-      flavour = this.flavourResolver(target);
+    const resolvedFlavour =
+      flavour ||
+      state.flavour ||
+      Metadata.get(owner, DecorationKeys.FLAVOUR) ||
+      DefaultFlavour;
+
+    while (state.pending.length) {
+      const entry = state.pending.shift();
+      if (!entry) continue;
+      this.applyPendingEntry(entry, resolvedFlavour);
     }
 
-    const pending = this.pendingDecorators.filter(
-      (item) =>
-        item.target === target || item.target.prototype === target.prototype
-    );
+    state.flavour = resolvedFlavour;
+    state.resolved = true;
+    if (resolvedFlavour !== DefaultFlavour) {
+      state.directApply = true;
+    }
 
-    // Execute callbacks in registration order
-    pending.forEach((item) => {
-      try {
-        item.callback(flavour)(
-          item.target,
-          item.propertyKey as string,
-          item.descriptor as TypedPropertyDescriptor<any>
-        );
-      } catch (error) {
-        console.error(
-          `Error resolving pending decorator for ${target.name}.${item.propertyKey}:`,
-          error
-        );
-      }
-    });
-
-    // Remove processed decorators
-    this.pendingDecorators = this.pendingDecorators.filter(
-      (item) =>
-        item.target !== target && item.target.prototype !== target.prototype
-    );
-
-    this.processedTargets.add(target);
-    Metadata.set(target, DecorationKeys.DECORATION, true);
+    Metadata.set(owner, DecorationKeys.DECORATION, true);
   }
 
   /**
@@ -292,6 +352,23 @@ export class Decoration implements IDecorationBuilder {
     }
 
     return this;
+  }
+
+  private snapshotDecoratorArgs():
+    | Record<number, any[]>
+    | undefined {
+    if (!this.decorators || !this.decorators.size) return undefined;
+    const overrides: Record<number, any[]> = {};
+    Array.from(this.decorators.values()).forEach((entry, index) => {
+      if (
+        typeof entry === "object" &&
+        "args" in entry &&
+        Array.isArray(entry.args)
+      ) {
+        overrides[index] = [...entry.args];
+      }
+    });
+    return Object.keys(overrides).length ? overrides : undefined;
   }
 
   /**
@@ -352,13 +429,17 @@ export class Decoration implements IDecorationBuilder {
    *     A->>U: invoke decorator(target, key?, desc?)
    *   end
    */
-  protected decoratorFactory(key: string, f: string = DefaultFlavour) {
+  protected decoratorFactory(
+    key: string,
+    f?: string,
+    overrides?: Record<number, any[]>
+  ) {
     function contextDecorator(
       target: object,
       propertyKey?: any,
       descriptor?: TypedPropertyDescriptor<any>
     ) {
-      const flavour = Decoration.flavourResolver(target);
+      const flavour = f ?? Decoration.flavourResolver(target);
       const cache = Decoration.decorators[key];
       let decorators;
       const extras = cache[flavour]
@@ -416,6 +497,7 @@ export class Decoration implements IDecorationBuilder {
       ];
 
       const baseLength = baseDecoratorsList.length;
+      const argsOverrides = overrides || {};
 
       return toApply.reduce(
         (_, d, index) => {
@@ -423,13 +505,16 @@ export class Decoration implements IDecorationBuilder {
             case "object": {
               const entry = d as any;
               const candidateIndex = index < baseLength ? index : 0;
+              const overrideArgs =
+                index < baseLength ? argsOverrides[candidateIndex] : undefined;
               const args =
-                "args" in entry && Array.isArray(entry.args)
+                overrideArgs ||
+                ("args" in entry && Array.isArray(entry.args)
                   ? entry.args
                   : (baseArgsByIndex[candidateIndex] ??
                     defaultArgsByIndex[candidateIndex] ??
                     defaultArgsByIndex[0] ??
-                    []);
+                    []));
 
               return (entry.decorator(...args) as any)(
                 target,
@@ -447,7 +532,7 @@ export class Decoration implements IDecorationBuilder {
       );
     }
     Object.defineProperty(contextDecorator, "name", {
-      value: [f, key].join("_decorator_for_"),
+      value: [(f || "dynamic"), key].join("_decorator_for_"),
       writable: false,
     });
     return contextDecorator;
@@ -484,24 +569,33 @@ export class Decoration implements IDecorationBuilder {
     );
 
     const wrapper = (target: any, propertyKey?: any, descriptor?: any) => {
-      if (propertyKey) {
-        uses(DefaultFlavour)(target.constructor); // always use @uses on the class to ensure flavour resolution
+      const isMember = typeof propertyKey !== "undefined";
+      const owner =
+        typeof target === "function" ? target : target?.constructor || target;
+
+      if (owner && isMember) {
+        uses(DefaultFlavour)(owner);
+        const argsOverride = this.snapshotDecoratorArgs();
+        Decoration.registerPendingDecorator(
+          owner,
+          owner,
+          (resolvedFlavour: string) => {
+            return this.decoratorFactory(key, resolvedFlavour, argsOverride);
+          },
+          propertyKey,
+          descriptor,
+          argsOverride
+        );
+        return descriptor;
       }
-      // Theorized deferred resolution (disabled for now)
-      Decoration.registerPendingDecorator(
-        propertyKey ? target.constructor : target,
-        (resolvedFlavour: string) => {
-          return this.decoratorFactory(key, resolvedFlavour);
-        },
+
+      const flavourHint =
+        this.flavour === DefaultFlavour ? undefined : this.flavour;
+      return this.decoratorFactory(key as string, flavourHint)(
+        target,
         propertyKey,
         descriptor
       );
-      return propertyKey ? descriptor : target;
-      // return this.decoratorFactory(key as string, this.flavour)(
-      //   target,
-      //   propertyKey,
-      //   descriptor
-      // );
     };
 
     // Give the wrapper a readable name so tests (and debuggers) can inspect it.
