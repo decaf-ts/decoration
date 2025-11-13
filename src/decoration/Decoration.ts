@@ -274,6 +274,73 @@ export class Decoration implements IDecorationBuilder {
     return key;
   }
 
+  private static ensureLazyResolution(
+    owner: any,
+    target: any,
+    propertyKey?: string | symbol
+  ): void {
+    if (!owner || typeof propertyKey === "undefined") return;
+    const definitionTarget =
+      typeof target === "function" ? target.prototype : target;
+    if (!definitionTarget) return;
+
+    const descriptor = Object.getOwnPropertyDescriptor(
+      definitionTarget,
+      propertyKey
+    );
+
+    // Skip if another decorator already installed a non-configurable descriptor.
+    if (descriptor && descriptor.configurable === false) return;
+
+    const placeholderGet = function (this: any) {
+      Decoration.resolvePendingDecorators(owner);
+      const resolved = Object.getOwnPropertyDescriptor(
+        definitionTarget,
+        propertyKey
+      );
+      if (resolved?.get && resolved.get !== placeholderGet) {
+        return resolved.get.call(this);
+      }
+      if (resolved && "value" in resolved) {
+        return resolved.value;
+      }
+      return undefined;
+    };
+
+    const placeholderSet = function (this: any, value: any) {
+      Decoration.resolvePendingDecorators(owner);
+      const resolved = Object.getOwnPropertyDescriptor(
+        definitionTarget,
+        propertyKey
+      );
+      if (resolved?.set && resolved.set !== placeholderSet) {
+        resolved.set.call(this, value);
+        return;
+      }
+      Object.defineProperty(this, propertyKey, {
+        configurable: true,
+        writable: true,
+        value,
+      });
+    };
+
+    Object.defineProperty(placeholderGet, "__decafLazy", {
+      value: true,
+      enumerable: false,
+    });
+    Object.defineProperty(placeholderSet, "__decafLazy", {
+      value: true,
+      enumerable: false,
+    });
+
+    Object.defineProperty(definitionTarget, propertyKey, {
+      configurable: true,
+      enumerable: descriptor?.enumerable ?? true,
+      get: placeholderGet,
+      set: placeholderSet,
+    });
+  }
+
   protected static resolvePendingDecorators(
     target: any,
     flavour?: string
@@ -572,13 +639,12 @@ export class Decoration implements IDecorationBuilder {
       const isMember = typeof propertyKey !== "undefined";
       const owner =
         typeof target === "function" ? target : target?.constructor || target;
-
       if (owner && isMember) {
         uses(DefaultFlavour)(owner);
         const argsOverride = this.snapshotDecoratorArgs();
         Decoration.registerPendingDecorator(
           owner,
-          owner,
+          target,
           (resolvedFlavour: string) => {
             return this.decoratorFactory(key, resolvedFlavour, argsOverride);
           },
@@ -586,6 +652,7 @@ export class Decoration implements IDecorationBuilder {
           descriptor,
           argsOverride
         );
+        Decoration.ensureLazyResolution(owner, target, propertyKey);
         return descriptor;
       }
 

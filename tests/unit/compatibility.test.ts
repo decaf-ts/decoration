@@ -100,8 +100,26 @@ describe("Multiple Decoration Compatibility", () => {
     const obj3 = new Obj3();
     obj3.prop = "test3";
 
-    expect(f1).toHaveBeenCalledWith("first", 1, Obj1, "prop", undefined);
-    expect(f2).toHaveBeenCalledWith("first", 2, Obj2, "prop", undefined);
-    expect(f3).toHaveBeenCalledWith("first", 3, Obj3, "prop", undefined);
+    expect(f1).toHaveBeenCalledWith(
+      "first",
+      1,
+      Obj1.prototype,
+      "prop",
+      undefined
+    );
+    expect(f2).toHaveBeenCalledWith(
+      "first",
+      2,
+      Obj2.prototype,
+      "prop",
+      undefined
+    );
+    expect(f3).toHaveBeenCalledWith(
+      "first",
+      3,
+      Obj3.prototype,
+      "prop",
+      undefined
+    );
   });
 });
