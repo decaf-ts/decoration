@@ -1,6 +1,6 @@
 {
   "name": "@decaf-ts/decoration",
-  "version": "0.0.18",
+  "version": "0.7.0",
   "description": "Decoration and metadata mechanisms for decaf-ts",
   "type": "module",
   "exports": {
@@ -9,7 +9,7 @@
   },
   "types": "lib/index.d.ts",
   "scripts": {
-    "do-install": "TOKEN=$(cat .token) npm install",
+    "do-install": "NPM_TOKEN=$(cat .npmtoken) npm install",
     "update-dependencies": "PREFIX=\"decaf-ts\"; npm ls | grep \"$PREFIX\" | awk -F/ '{print $NF}' | sed 's/@.*//' | xargs -I package npm update @\"$PREFIX\"/package",
     "update-scripts": "npx update-scripts",
     "on-first-run": "npx update-scripts --boot",
@@ -55,25 +55,17 @@
     "dist"
   ],
   "keywords": [
-    "plantuml",
-    "mermaid",
-    "uml",
-    "drawio",
-    "mddocs",
-    "md",
-    "jsdoc",
-    "doc",
-    "docs",
-    "documentation",
-    "test",
-    "reports",
-    "confluence",
-    "ci/cd",
-    "ci",
-    "cd",
-    "template",
+    "decoration",
+    "metadata",
+    "decorators",
+    "annotations",
     "typescript",
-    "ts"
+    "decaf",
+    "reflection",
+    "metadata-driven",
+    "runtime",
+    "design-time",
+    "attributes"
   ],
   "author": "Tiago Venceslau and Contributors",
   "bugs": {
@@ -81,42 +73,10 @@
   },
   "homepage": "https://github.com/decaf-ts/decoration#readme",
   "devDependencies": {
-    "@decaf-ts/logging": "latest",
-    "@decaf-ts/utils": "latest",
-    "@eslint/js": "^9.25.1",
-    "@rollup/plugin-commonjs": "^28.0.3",
-    "@rollup/plugin-json": "^6.1.0",
-    "@rollup/plugin-node-resolve": "^16.0.1",
-    "@rollup/plugin-typescript": "^12.1.2",
-    "@stylistic/eslint-plugin": "^4.2.0",
-    "@types/jest": "^29.5.14",
-    "clean-publish": "^5.1.0",
-    "dpdm": "^3.14.0",
-    "eslint": "^9.25.1",
-    "eslint-config-prettier": "^10.1.2",
-    "eslint-plugin-prettier": "^5.2.6",
-    "globals": "^16.0.0",
-    "jest": "^29.7.0",
-    "jest-html-reporters": "^3.1.7",
-    "jest-junit": "^16.0.0",
-    "jsdoc": "^4.0.4",
-    "jsdoc-mermaid": "^1.0.0",
-    "markdown-include": "^0.4.3",
-    "minimist": "^1.2.8",
-    "nodemon": "^3.1.9",
-    "npm-check-updates": "^18.0.0",
-    "prettier": "3.5.3",
-    "rimraf": "^6.0.1",
-    "rollup": "^4.40.0",
-    "ts-jest": "^29.3.2",
-    "ts-loader": "^9.5.2",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.8.3",
-    "typescript-eslint": "^8.31.0"
+    "@decaf-ts/utils": "latest"
   },
-  "peerDependencies": {
-    "reflect-metadata": "^0.2.2",
-    "typed-object-accumulator": "^0.1.5"
-  },
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "reflect-metadata": "^0.2.2"
+  }
 }

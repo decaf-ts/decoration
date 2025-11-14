@@ -1,8 +1,7 @@
-[![Banner](./workdocs/assets/Banner.png)](https://decaf-ts.github.io/ts-workspace/)
+![Banner](./workdocs/assets/decaf-logo.svg)
 ## @decaf-ts/decoration
 
 The decoration module provides a small, composable system for building and applying TypeScript decorators with flavour-aware resolution and a centralized runtime Metadata store. It lets you define base decorators, provide framework-specific overrides and extensions ("flavours"), and record/read rich metadata for classes and their members at runtime.
-
 
 ![Licence](https://img.shields.io/github/license/decaf-ts/ts-workspace.svg?style=plastic)
 ![GitHub language count](https://img.shields.io/github/languages/count/decaf-ts/ts-workspace?style=plastic)
@@ -26,6 +25,9 @@ The decoration module provides a small, composable system for building and apply
 ![NPM Version](https://img.shields.io/badge/dynamic/json.svg?url=https%3A%2F%2Fraw.githubusercontent.com%2Fbadges%2Fshields%2Fmaster%2Fpackage.json&label=NPM&query=$.engines.npm&colorB=purple)
 
 Documentation available [here](https://decaf-ts.github.io/ts-workspace/)
+
+Minimal size: 2.7 KB kb gzipped
+
 
 # Description
 
@@ -104,6 +106,12 @@ Practical examples for every exported surface of **@decaf-ts/decoration**. All s
 
 The `Decoration` class exposes a fluent builder that lets you define base decorators, add flavour-specific extras, or override behaviour entirely.
 
+Important behaviour note:
+- Calling `define()` registers (or replaces) the *base* decorators for a key/flavour. If you call `define()` again for the same key/flavour, the previously registered base decorators are replaced with the new ones.
+- Calling `extend()` (or providing extras) registers additional flavour-specific decorators that are applied after the base decorators. Crucially, calls to `define()` will NOT remove or clear previously registered extras — extras persist until they are explicitly changed via `extend()` (or a `define()`/`apply()` that provides explicit extras).
+
+These guarantees let you safely replace base behaviour without losing already-registered platform-specific additions.
+
 ### 1. Register base decorators for the default flavour
 
 ```ts
@@ -127,6 +135,47 @@ class DefaultComponent {}
 
 (DefaultComponent as any).__isComponent; // true
 (DefaultComponent as any).__tag; // "base"
+```
+
+### Replace base decorators (base only — extras persist)
+
+If you need to change the base behaviour later, call `define()` again for the same key/flavour — this REPLACES the previously registered base decorators but does not remove extras that were registered with `extend()`.
+
+```ts
+const calls: string[] = [];
+
+const baseA = () =>
+  Decoration.for("widget")
+    .define(((t: any) => {
+      calls.push(`baseA:${t.name}`);
+    }) as any)
+    .apply();
+
+Decoration.for("widget")
+  .extend(((t: any) => {
+    calls.push(`extra:${t.name}`);
+  }) as any)
+  .apply();
+
+@baseA()
+class Widget1 {}
+
+// Later we replace the base behaviour for the same key. Extras remain.
+Decoration.for("widget")
+  .define(((t: any) => {
+    calls.push(`baseB:${t.name}`);
+  }) as any)
+  .apply();
+
+@Decoration.for("widget").apply()
+class Widget2 {}
+
+// calls === [
+//  `baseA:Widget1`,
+//  `extra:Widget1`,
+//  `baseB:Widget2`,   // base replaced
+//  `extra:Widget2`    // extra persists
+// ]
 ```
 
 ### 2. Extend base decorators with flavour-specific extras
@@ -433,6 +482,25 @@ import { DefaultFlavour, ObjectKeySplitter, DecorationKeys } from "@decaf-ts/dec
 console.log(DefaultFlavour);     // "decaf"
 console.log(ObjectKeySplitter);  // "."
 console.log(DecorationKeys.PROPERTIES); // "properties"
+```
+
+
+## Coding Principles
+
+- group similar functionality in folders (analog to namespaces but without any namespace declaration)
+- one class per file;
+- one interface per file (unless interface is just used as a type);
+- group types as other interfaces in a types.ts file per folder;
+- group constants or enums in a constants.ts file per folder;
+- group decorators in a decorators.ts file per folder;
+- always import from the specific file, never from a folder or index file (exceptions for dependencies on other packages);
+- prefer the usage of established design patters where applicable:
+  - Singleton (can be an anti-pattern. use with care);
+  - factory;
+  - observer;
+  - strategy;
+  - builder;
+  - etc;
 ```
 
 
