@@ -49,7 +49,19 @@ export function uses(flavour: string) {
     if (flavour !== DefaultFlavour) {
       Decoration["resolvePendingDecorators"](object, flavour);
     } else {
-      Decoration["markPending"](object);
+      let resolved: string | undefined;
+      try {
+        resolved = Decoration["flavourResolver"]
+          ? Decoration["flavourResolver"](object)
+          : undefined;
+      } catch {
+        resolved = undefined;
+      }
+      if (resolved && resolved !== DefaultFlavour) {
+        Decoration["resolvePendingDecorators"](object, resolved);
+      } else {
+        Decoration["markPending"](object);
+      }
     }
     return object;
   };
