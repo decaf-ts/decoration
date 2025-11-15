@@ -45,6 +45,12 @@ export function metadataArray(key: string, ...data: any[]) {
 export function uses(flavour: string) {
   return (object: any) => {
     const constr = Metadata.constr(object);
+
+    const current =
+      Metadata["innerGet"](Symbol.for(DecorationKeys.FLAVOUR), flavour) || [];
+    current.push(object);
+    Metadata.set(DecorationKeys.FLAVOUR, flavour, current);
+
     Metadata.set(constr, DecorationKeys.FLAVOUR, flavour);
     // const meta = Metadata.get(object, DecorationKeys.FLAVOUR);
     if (flavour !== DefaultFlavour) {

@@ -209,6 +209,10 @@ export class Metadata {
     return Decoration["flavourResolver"](model);
   }
 
+  static flavouredAs(flavour: string): Constructor[] {
+    return this.innerGet(Symbol.for(DecorationKeys.FLAVOUR), flavour) || [];
+  }
+
   /**
    * @description Retrieves the recorded params for a method.
    * @summary Reads the metadata entry under `methods.<prop>.design:paramtypes` to return the parameter constructors for the given method.
