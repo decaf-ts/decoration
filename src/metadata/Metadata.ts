@@ -205,6 +205,10 @@ export class Metadata {
     );
   }
 
+  static flavourOf(model: Constructor): string {
+    return Decoration["flavourResolver"](model);
+  }
+
   /**
    * @description Retrieves the recorded params for a method.
    * @summary Reads the metadata entry under `methods.<prop>.design:paramtypes` to return the parameter constructors for the given method.

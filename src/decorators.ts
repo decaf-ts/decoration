@@ -90,14 +90,6 @@ export function prop() {
       prop
     );
   };
-  // }
-  //
-  // return Decoration.for(DecorationKeys.PROPERTIES)
-  //   .define({
-  //     decorator: innerProp,
-  //     args: [],
-  //   })
-  //   .apply();
 }
 
 /**
