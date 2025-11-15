@@ -42,17 +42,34 @@ export function metadataArray(key: string, ...data: any[]) {
   };
 }
 
+function manageFlavourRMetadata(object: object, flavour: string) {
+  const flav =
+    Metadata["innerGet"](
+      Metadata.Symbol(object as any),
+      DecorationKeys.FLAVOUR
+    ) || DefaultFlavour;
+  const old =
+    Metadata["innerGet"](Symbol.for(DecorationKeys.FLAVOUR), flav) || [];
+  Metadata.set(
+    DecorationKeys.FLAVOUR,
+    flav,
+    old.filter((o: any) => o !== object)
+  );
+  const current = new Set(
+    Metadata["innerGet"](Symbol.for(DecorationKeys.FLAVOUR), flavour) || []
+  );
+  current.add(object);
+  Metadata.set(DecorationKeys.FLAVOUR, flavour, [...current]);
+}
+
 export function uses(flavour: string) {
   return (object: any) => {
     const constr = Metadata.constr(object);
 
-    const current =
-      Metadata["innerGet"](Symbol.for(DecorationKeys.FLAVOUR), flavour) || [];
-    current.push(object);
-    Metadata.set(DecorationKeys.FLAVOUR, flavour, current);
+    manageFlavourRMetadata(object, flavour);
 
     Metadata.set(constr, DecorationKeys.FLAVOUR, flavour);
-    // const meta = Metadata.get(object, DecorationKeys.FLAVOUR);
+
     if (flavour !== DefaultFlavour) {
       Decoration["resolvePendingDecorators"](constr, flavour);
     } else {
