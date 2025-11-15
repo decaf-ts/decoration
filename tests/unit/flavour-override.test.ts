@@ -1,13 +1,7 @@
-import {
-  Decoration,
-  DecorationKeys,
-  DefaultFlavour,
-  Metadata,
-  uses,
-} from "../../src/index";
+import { Decoration, DefaultFlavour, Metadata, uses } from "../../src/index";
 
 describe("Multiple Decoration Compatibility", () => {
-  it("Applies multiple decorations without conflict", () => {
+  it("Allows overriding decorations with different flavours", () => {
     const f1 = jest.fn();
     const f2 = jest.fn();
     const f3 = jest.fn();
@@ -65,68 +59,36 @@ describe("Multiple Decoration Compatibility", () => {
       } as any)
       .apply();
 
-    class Obj1 {
+    class Override1 {
       @decorator("first", 1)
       prop!: string;
       constructor() {}
     }
 
     @uses("2")
-    class Obj2 {
+    class Override2 {
       @decorator("first", 2)
       prop!: string;
       constructor() {}
     }
 
-    @uses("3")
-    class Obj3 {
-      @decorator("first", 3)
-      prop!: string;
-      constructor() {}
-    }
+    expect(Metadata.flavourOf(Override1)).toEqual(DefaultFlavour);
+    expect(Metadata.flavourOf(Override2)).toEqual("2");
 
-    const meta1 = Metadata.get(Obj1, DecorationKeys.FLAVOUR);
-    const meta2 = Metadata.get(Obj2, DecorationKeys.FLAVOUR);
-    const meta3 = Metadata.get(Obj3, DecorationKeys.FLAVOUR);
+    expect(Metadata.flavouredAs(DefaultFlavour)).toEqual([Override1]);
+    expect(Metadata.flavouredAs("2")).toEqual([Override2]);
 
-    expect(meta1).toEqual(DefaultFlavour);
-    expect(meta2).toEqual("2");
-    expect(meta3).toEqual("3");
+    uses("3")(Override1);
+    uses("3")(Override2);
 
-    const obj1 = new Obj1();
-    obj1.prop = "test1";
-    const obj2 = new Obj2();
-    obj2.prop = "test2";
-    const obj3 = new Obj3();
-    obj3.prop = "test3";
+    expect(Metadata.flavourOf(Override1)).toEqual("3");
+    expect(Metadata.flavourOf(Override2)).toEqual("3");
 
-    expect(f1).toHaveBeenCalledWith(
-      "first",
-      1,
-      Obj1.prototype,
-      "prop",
-      undefined
-    );
-    expect(f2).toHaveBeenCalledWith(
-      "first",
-      2,
-      Obj2.prototype,
-      "prop",
-      undefined
-    );
-    expect(f3).toHaveBeenCalledWith(
-      "first",
-      3,
-      Obj3.prototype,
-      "prop",
-      undefined
-    );
+    expect(Metadata.flavouredAs("3")).toEqual([Override1, Override2]);
+    expect(Metadata.flavouredAs(DefaultFlavour)).toEqual([]);
+    expect(Metadata.flavouredAs("2")).toEqual([]);
 
-    expect(Metadata.flavourOf(Obj1)).toEqual(DefaultFlavour);
-    expect(Metadata.flavourOf(Obj2)).toEqual("2");
-    expect(Metadata.flavourOf(Obj3)).toEqual("3");
-
-    expect(Metadata.flavouredAs("2")).toEqual([Obj2]);
-    expect(Metadata.flavouredAs("3")).toEqual([Obj3]);
+    uses("3")(Override2);
+    expect(Metadata.flavouredAs("3")).toEqual([Override1, Override2]);
   });
 });
