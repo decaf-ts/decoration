@@ -44,23 +44,24 @@ export function metadataArray(key: string, ...data: any[]) {
 
 export function uses(flavour: string) {
   return (object: any) => {
-    Metadata.set(object, DecorationKeys.FLAVOUR, flavour);
+    const constr = Metadata.constr(object);
+    Metadata.set(constr, DecorationKeys.FLAVOUR, flavour);
     // const meta = Metadata.get(object, DecorationKeys.FLAVOUR);
     if (flavour !== DefaultFlavour) {
-      Decoration["resolvePendingDecorators"](object, flavour);
+      Decoration["resolvePendingDecorators"](constr, flavour);
     } else {
       let resolved: string | undefined;
       try {
         resolved = Decoration["flavourResolver"]
-          ? Decoration["flavourResolver"](object)
+          ? Decoration["flavourResolver"](constr)
           : undefined;
       } catch {
         resolved = undefined;
       }
       if (resolved && resolved !== DefaultFlavour) {
-        Decoration["resolvePendingDecorators"](object, resolved);
+        Decoration["resolvePendingDecorators"](constr, resolved);
       } else {
-        Decoration["markPending"](object);
+        Decoration["markPending"](constr);
       }
     }
     return object;
