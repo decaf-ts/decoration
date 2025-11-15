@@ -19,9 +19,13 @@ import { method, prop, uses } from "../decorators";
  * @memberOf module:decoration
  */
 function flavourResolver(target: object): string {
-  const owner =
-    typeof target === "function" ? target : (target as any)?.constructor;
-  const meta = Metadata.get((owner || target) as any, DecorationKeys.FLAVOUR);
+  const owner = Metadata.constr(
+    typeof target === "function" ? target : (target as any)?.constructor
+  );
+  const meta = Metadata["innerGet"](
+    Metadata.Symbol(owner),
+    DecorationKeys.FLAVOUR
+  );
   return meta ?? DefaultFlavour;
 }
 
