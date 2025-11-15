@@ -47,7 +47,7 @@ function manageFlavourRMetadata(object: object, flavour: string) {
     Metadata["innerGet"](
       Metadata.Symbol(object as any),
       DecorationKeys.FLAVOUR
-    ) || DefaultFlavour;
+    ) || Decoration.defaultFlavour;
   const old =
     Metadata["innerGet"](Symbol.for(DecorationKeys.FLAVOUR), flav) || [];
   const filtered = old.filter((o: any) => {
@@ -69,7 +69,7 @@ export function uses(flavour: string) {
 
     Metadata.set(constr, DecorationKeys.FLAVOUR, flavour);
 
-    if (flavour !== DefaultFlavour) {
+    if (flavour !== Decoration.defaultFlavour) {
       Decoration["resolvePendingDecorators"](constr, flavour);
     } else {
       let resolved: string | undefined;
@@ -80,7 +80,7 @@ export function uses(flavour: string) {
       } catch {
         resolved = undefined;
       }
-      if (resolved && resolved !== DefaultFlavour) {
+      if (resolved && resolved !== Decoration.defaultFlavour) {
         Decoration["resolvePendingDecorators"](constr, resolved);
       } else {
         Decoration["markPending"](constr);

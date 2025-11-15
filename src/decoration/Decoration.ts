@@ -26,7 +26,7 @@ function flavourResolver(target: object): string {
     Metadata.Symbol(owner),
     DecorationKeys.FLAVOUR
   );
-  return meta ?? DefaultFlavour;
+  return meta ?? Decoration.defaultFlavour;
 }
 
 /**
@@ -140,6 +140,8 @@ interface TargetDecorationState {
  *   F-->>C: decorated target
  */
 export class Decoration implements IDecorationBuilder {
+  static defaultFlavour = DefaultFlavour;
+
   private static targetStates: WeakMap<any, TargetDecorationState> =
     new WeakMap();
 
@@ -179,7 +181,7 @@ export class Decoration implements IDecorationBuilder {
    */
   private key?: string;
 
-  constructor(private flavour: string = DefaultFlavour) {}
+  constructor(private flavour: string = Decoration.defaultFlavour) {}
 
   /**
    * Register a decorator operation to be executed after class decorator runs.
@@ -238,7 +240,7 @@ export class Decoration implements IDecorationBuilder {
     if (!owner) return;
     const state = this.getTargetState(owner);
     state.resolved = false;
-    if (!state.flavour) state.flavour = DefaultFlavour;
+    if (!state.flavour) state.flavour = Decoration.defaultFlavour;
     Metadata.set(owner, DecorationKeys.DECORATION, DecorationState.PENDING);
   }
 
@@ -272,7 +274,7 @@ export class Decoration implements IDecorationBuilder {
       const flavourToUse =
         state.flavour ||
         Metadata.get(owner, DecorationKeys.FLAVOUR) ||
-        DefaultFlavour;
+        Decoration.defaultFlavour;
       this.applyPendingEntry(entry, flavourToUse);
       entry.lastAppliedPass = state.passId;
       return flavourToUse;
@@ -294,7 +296,7 @@ export class Decoration implements IDecorationBuilder {
     if (Decoration.flavourResolver !== flavourResolver) {
       try {
         const eagerFlavour = Decoration.flavourResolver(owner);
-        if (eagerFlavour && eagerFlavour !== DefaultFlavour) {
+        if (eagerFlavour && eagerFlavour !== Decoration.defaultFlavour) {
           this.resolvePendingDecorators(owner, eagerFlavour);
           return key;
         }
@@ -321,7 +323,7 @@ export class Decoration implements IDecorationBuilder {
       flavour ||
       state.flavour ||
       Metadata.get(owner, DecorationKeys.FLAVOUR) ||
-      DefaultFlavour;
+      Decoration.defaultFlavour;
 
     if (state.applying) return;
 
@@ -335,7 +337,8 @@ export class Decoration implements IDecorationBuilder {
     }
 
     const shouldFinalize =
-      Boolean(flavour && flavour !== DefaultFlavour) || state.directApply;
+      Boolean(flavour && flavour !== Decoration.defaultFlavour) ||
+      state.directApply;
     if (!state.pending.length) return;
 
     const currentPass = (state.passId || 0) + 1;
@@ -371,7 +374,7 @@ export class Decoration implements IDecorationBuilder {
     if (shouldFinalize) {
       state.pending.length = 0;
       state.appliedCount = 0;
-      if (resolvedFlavour !== DefaultFlavour) {
+      if (resolvedFlavour !== Decoration.defaultFlavour) {
         state.directApply = true;
       }
     }
@@ -406,7 +409,7 @@ export class Decoration implements IDecorationBuilder {
     if (
       (!decorators || !decorators.length) &&
       !addon &&
-      this.flavour !== DefaultFlavour
+      this.flavour !== Decoration.defaultFlavour
     )
       throw new Error(
         "Must provide overrides or addons to override or extend decaf's decorators"
@@ -513,7 +516,7 @@ export class Decoration implements IDecorationBuilder {
       let decorators;
       const extras = cache[flavour]
         ? cache[flavour].extras
-        : cache[DefaultFlavour].extras;
+        : cache[Decoration.defaultFlavour].extras;
 
       if (
         cache &&
@@ -523,13 +526,13 @@ export class Decoration implements IDecorationBuilder {
       ) {
         decorators = cache[flavour].decorators;
       } else {
-        decorators = cache[DefaultFlavour].decorators;
+        decorators = cache[Decoration.defaultFlavour].decorators;
       }
 
       const baseDecoratorsList = [...(decorators ? decorators.values() : [])];
 
       const defaultDecoratorsList = [
-        ...(cache[DefaultFlavour]?.decorators || new Set()).values(),
+        ...(cache[Decoration.defaultFlavour]?.decorators || new Set()).values(),
       ];
 
       const baseArgsByIndex = baseDecoratorsList.reduce(
@@ -658,7 +661,7 @@ export class Decoration implements IDecorationBuilder {
           Metadata.Symbol(owner),
           DecorationKeys.FLAVOUR
         );
-        if (!currentFlavour) uses(DefaultFlavour)(owner);
+        if (!currentFlavour) uses(Decoration.defaultFlavour)(owner);
         const argsOverride = this.snapshotDecoratorArgs();
         Decoration.registerPendingDecorator(
           owner,
@@ -682,7 +685,7 @@ export class Decoration implements IDecorationBuilder {
       }
 
       const flavourHint =
-        this.flavour === DefaultFlavour ? undefined : this.flavour;
+        this.flavour === Decoration.defaultFlavour ? undefined : this.flavour;
       return this.decoratorFactory(key as string, flavourHint)(
         target,
         propertyKey,
