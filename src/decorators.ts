@@ -50,11 +50,10 @@ function manageFlavourRMetadata(object: object, flavour: string) {
     ) || DefaultFlavour;
   const old =
     Metadata["innerGet"](Symbol.for(DecorationKeys.FLAVOUR), flav) || [];
-  Metadata.set(
-    DecorationKeys.FLAVOUR,
-    flav,
-    old.filter((o: any) => o !== object)
-  );
+  const filtered = old.filter((o: any) => {
+    return o !== Metadata.constr(object as any);
+  });
+  Metadata.set(DecorationKeys.FLAVOUR, flav, filtered);
   const current = new Set(
     Metadata["innerGet"](Symbol.for(DecorationKeys.FLAVOUR), flavour) || []
   );
