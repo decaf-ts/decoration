@@ -76,28 +76,28 @@ export function uses(flavour: string) {
  * @category Property Decorators
  */
 export function prop() {
-  function innerProp() {
-    return function innerProp(model: object, prop?: any) {
-      const metadataTarget =
-        typeof model === "function" ? (model as any).prototype : model;
-      const designType = Reflect.getOwnMetadata(
-        DecorationKeys.DESIGN_TYPE,
-        metadataTarget,
-        prop
-      );
-      return metadata(
-        Metadata.key(DecorationKeys.PROPERTIES, prop),
-        designType
-      )(model, prop);
-    };
-  }
-
-  return Decoration.for(DecorationKeys.PROPERTIES)
-    .define({
-      decorator: innerProp,
-      args: [],
-    })
-    .apply();
+  // function innerProp() {
+  return function innerProp(model: object, prop?: any) {
+    const metadataTarget =
+      typeof model === "function" ? (model as any).prototype : model;
+    const designType = Reflect.getOwnMetadata(
+      DecorationKeys.DESIGN_TYPE,
+      metadataTarget,
+      prop
+    );
+    return metadata(Metadata.key(DecorationKeys.PROPERTIES, prop), designType)(
+      model,
+      prop
+    );
+  };
+  // }
+  //
+  // return Decoration.for(DecorationKeys.PROPERTIES)
+  //   .define({
+  //     decorator: innerProp,
+  //     args: [],
+  //   })
+  //   .apply();
 }
 
 /**

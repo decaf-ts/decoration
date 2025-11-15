@@ -8,7 +8,7 @@ import {
 } from "./types";
 import { DecorationKeys, DecorationState, DefaultFlavour } from "../constants";
 import { Metadata } from "../metadata/Metadata";
-import { uses } from "../decorators";
+import { method, prop, uses } from "../decorators";
 
 /**
  * @description Default resolver that returns the current default flavour.
@@ -203,12 +203,11 @@ export class Decoration implements IDecorationBuilder {
     flavour: string
   ): void {
     try {
-      const descriptorResult = entry
-        .callback(flavour, entry.argsOverride)(
-          entry.target,
-          entry.propertyKey as string | symbol,
-          entry.descriptor as TypedPropertyDescriptor<any>
-        );
+      const descriptorResult = entry.callback(flavour, entry.argsOverride)(
+        entry.target,
+        entry.propertyKey as string | symbol,
+        entry.descriptor as TypedPropertyDescriptor<any>
+      );
 
       if (
         typeof entry.propertyKey !== "undefined" &&
@@ -422,9 +421,7 @@ export class Decoration implements IDecorationBuilder {
     return this;
   }
 
-  private snapshotDecoratorArgs():
-    | Record<number, any[]>
-    | undefined {
+  private snapshotDecoratorArgs(): Record<number, any[]> | undefined {
     if (!this.decorators || !this.decorators.size) return undefined;
     const overrides: Record<number, any[]> = {};
     Array.from(this.decorators.values()).forEach((entry, index) => {
@@ -612,7 +609,7 @@ export class Decoration implements IDecorationBuilder {
         : currentDescriptor;
     }
     Object.defineProperty(contextDecorator, "name", {
-      value: [(f || "dynamic"), key].join("_decorator_for_"),
+      value: [f || "dynamic", key].join("_decorator_for_"),
       writable: false,
     });
     return contextDecorator;
@@ -666,6 +663,13 @@ export class Decoration implements IDecorationBuilder {
           argsOverride
         );
         Decoration.resolvePendingDecorators(owner);
+        if (propertyKey && !descriptor) {
+          prop()(owner, propertyKey); // auto tag as a property
+        }
+        if (propertyKey && descriptor) {
+          // TODO this probably needs refining. under some compilation processes, the descriptor can exit on a prop
+          method()(owner, propertyKey, descriptor); // auto tag as a method
+        }
         return descriptor;
       }
 
@@ -678,14 +682,13 @@ export class Decoration implements IDecorationBuilder {
       );
     };
 
-    // Give the wrapper a readable name so tests (and debuggers) can inspect it.
     try {
       Object.defineProperty(wrapper, "name", {
         value: [this.flavour, key].join("_decorator_for_"),
         writable: false,
       });
-    } catch (e) {
-      console.error(e);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (e: unknown) {
       // Ignore environments that forbid redefining function name
     }
 
