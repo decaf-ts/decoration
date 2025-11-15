@@ -654,7 +654,11 @@ export class Decoration implements IDecorationBuilder {
       const owner =
         typeof target === "function" ? target : target?.constructor || target;
       if (owner && isMember) {
-        uses(DefaultFlavour)(owner);
+        const currentFlavour = Metadata["innerGet"](
+          Metadata.Symbol(owner),
+          DecorationKeys.FLAVOUR
+        );
+        if (!currentFlavour) uses(DefaultFlavour)(owner);
         const argsOverride = this.snapshotDecoratorArgs();
         Decoration.registerPendingDecorator(
           owner,
