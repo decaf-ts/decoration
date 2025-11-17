@@ -2,6 +2,7 @@ import { BasicMetadata, Constructor } from "./types";
 import {
   DecorationKeys,
   DecorationState,
+  DefaultFlavour,
   ObjectKeySplitter,
 } from "../constants";
 import "reflect-metadata";
@@ -211,6 +212,30 @@ export class Metadata {
 
   static flavouredAs(flavour: string): Constructor[] {
     return this.innerGet(Symbol.for(DecorationKeys.FLAVOUR), flavour) || [];
+  }
+
+  static registeredFlavour(model: Constructor): string | undefined {
+    const registry = this.innerGet(Symbol.for(DecorationKeys.FLAVOUR));
+    if (!registry) return undefined;
+    const constr = this.constr(model);
+    let fallback: string | undefined;
+    for (const [flavour, constructors] of Object.entries(
+      registry as Record<string, Constructor[]>
+    )) {
+      if (Array.isArray(constructors)) {
+        const resolved = constructors.some(
+          (registered) => this.constr(registered) === constr
+        );
+        if (resolved) {
+          if (flavour === DefaultFlavour) {
+            fallback = fallback || flavour;
+            continue;
+          }
+          return flavour;
+        }
+      }
+    }
+    return fallback;
   }
 
   /**

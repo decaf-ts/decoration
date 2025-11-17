@@ -26,6 +26,12 @@ function flavourResolver(target: object): string {
     Metadata.Symbol(owner),
     DecorationKeys.FLAVOUR
   );
+  if (meta && meta !== Decoration.defaultFlavour) return meta;
+  const registered =
+    typeof Metadata["registeredFlavour"] === "function"
+      ? Metadata.registeredFlavour(owner)
+      : undefined;
+  if (registered && registered !== Decoration.defaultFlavour) return registered;
   return meta ?? Decoration.defaultFlavour;
 }
 
@@ -315,7 +321,6 @@ export class Decoration implements IDecorationBuilder {
     const owner =
       typeof target === "function" ? target : target?.constructor || target;
     if (!owner) return;
-
     const state = this.getTargetState(owner);
     if (!state.pending.length && !flavour) return;
 

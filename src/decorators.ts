@@ -43,6 +43,7 @@ export function metadataArray(key: string, ...data: any[]) {
 }
 
 function manageFlavourRMetadata(object: object, flavour: string) {
+  const canonical = Metadata.constr(object as any);
   const flav =
     Metadata["innerGet"](
       Metadata.Symbol(object as any),
@@ -51,7 +52,7 @@ function manageFlavourRMetadata(object: object, flavour: string) {
   const old =
     Metadata["innerGet"](Symbol.for(DecorationKeys.FLAVOUR), flav) || [];
   const filtered = old.filter((o: any) => {
-    return o !== Metadata.constr(object as any);
+    return Metadata.constr(o as any) !== canonical;
   });
   Metadata.set(DecorationKeys.FLAVOUR, flav, filtered);
   const current = new Set(
