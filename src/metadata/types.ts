@@ -13,6 +13,7 @@ import { DecorationKeys } from "../constants";
  */
 /** @ignore */
 export type BasicMetadata<M> = {
+  flavour: string;
   /**
    * @description Canonical constructor associated with the metadata entry.
    * @type {Constructor<M>}
