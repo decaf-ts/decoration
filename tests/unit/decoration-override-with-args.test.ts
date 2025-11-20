@@ -50,16 +50,15 @@ function f1() {
 }
 
 const flavour = "flavour2";
-
-Decoration.setFlavourResolver(() => {
+Decoration["flavourResolver"] = () => {
   return flavour;
-});
+};
 
 Decoration.flavouredAs(flavour)
   .for("f1")
   .define({
     decorator: report2,
-  })
+  } as any)
   .apply();
 
 describe("dynamic class decoration - override with args", () => {

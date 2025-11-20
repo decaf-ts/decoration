@@ -82,9 +82,9 @@ function f2(str: string, obj: object) {
 
 const flavour = "flavour2";
 
-Decoration.setFlavourResolver(() => {
+Decoration["flavourResolver"] = () => {
   return flavour;
-});
+};
 
 Decoration.flavouredAs(flavour).for("f2").extend({ decorator: f1 }).apply();
 

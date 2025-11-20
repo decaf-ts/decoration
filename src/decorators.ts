@@ -18,7 +18,14 @@ export function metadata(key: string, value: any) {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     descriptor?: PropertyDescriptor | number
   ) {
-    Metadata.set(prop ? model.constructor : model, key, value);
+    let targetModel = model;
+    if (prop) {
+      targetModel =
+        typeof model === "function"
+          ? model
+          : (model as { constructor?: any }).constructor || model;
+    }
+    Metadata.set(targetModel, key, value);
   };
 }
 
@@ -35,6 +42,55 @@ export function metadataArray(key: string, ...data: any[]) {
   };
 }
 
+function manageFlavourRMetadata(object: object, flavour: string) {
+  const canonical = Metadata.constr(object as any);
+  const flav =
+    Metadata["innerGet"](
+      Metadata.Symbol(object as any),
+      DecorationKeys.FLAVOUR
+    ) || Decoration.defaultFlavour;
+  const old =
+    Metadata["innerGet"](Symbol.for(DecorationKeys.FLAVOUR), flav) || [];
+  const filtered = old.filter((o: any) => {
+    return Metadata.constr(o as any) !== canonical;
+  });
+  Metadata.set(DecorationKeys.FLAVOUR, flav, filtered);
+  const current = new Set(
+    Metadata["innerGet"](Symbol.for(DecorationKeys.FLAVOUR), flavour) || []
+  );
+  current.add(object);
+  Metadata.set(DecorationKeys.FLAVOUR, flavour, [...current]);
+}
+
+export function uses(flavour: string) {
+  return (object: any) => {
+    const constr = Metadata.constr(object);
+
+    manageFlavourRMetadata(object, flavour);
+
+    Metadata.set(constr, DecorationKeys.FLAVOUR, flavour);
+
+    if (flavour !== Decoration.defaultFlavour) {
+      Decoration["resolvePendingDecorators"](constr, flavour);
+    } else {
+      let resolved: string | undefined;
+      try {
+        resolved = Decoration["flavourResolver"]
+          ? Decoration["flavourResolver"](constr)
+          : undefined;
+      } catch {
+        resolved = undefined;
+      }
+      if (resolved && resolved !== Decoration.defaultFlavour) {
+        Decoration["resolvePendingDecorators"](constr, resolved);
+      } else {
+        Decoration["markPending"](constr);
+      }
+    }
+    return object;
+  };
+}
+
 /**
  * @description Captures and stores a property's design type.
  * @summary Decorator factory that reads the reflected `design:type` for a property and registers it in the metadata store under the properties map.
@@ -43,26 +99,20 @@ export function metadataArray(key: string, ...data: any[]) {
  * @category Property Decorators
  */
 export function prop() {
-  function innerProp() {
-    return function innerProp(model: object, prop?: any) {
-      const designType = Reflect.getOwnMetadata(
-        DecorationKeys.DESIGN_TYPE,
-        model,
-        prop
-      );
-      return metadata(
-        Metadata.key(DecorationKeys.PROPERTIES, prop),
-        designType
-      )(model, prop);
-    };
-  }
-
-  return Decoration.for(DecorationKeys.PROPERTIES)
-    .define({
-      decorator: innerProp,
-      args: [],
-    })
-    .apply();
+  // function innerProp() {
+  return function innerProp(model: object, prop?: any) {
+    const metadataTarget =
+      typeof model === "function" ? (model as any).prototype : model;
+    const designType = Reflect.getOwnMetadata(
+      DecorationKeys.DESIGN_TYPE,
+      metadataTarget,
+      prop
+    );
+    return metadata(Metadata.key(DecorationKeys.PROPERTIES, prop), designType)(
+      model,
+      prop
+    );
+  };
 }
 
 /**
@@ -84,24 +134,24 @@ export function prop() {
  *   P-->>U: parameter recorded
  */
 export function param() {
-  return function param(
-    model: object,
-    prop: string | symbol | undefined,
-    index: number
-  ) {
+  return function param(model: object, prop?: any, index?: number) {
     if (!prop)
       throw new Error(`The @param decorator can only be applied to methods`);
     method()(model, prop, Object.getOwnPropertyDescriptor(model, prop));
     const paramTpes = Metadata.params(model.constructor as any, prop as string);
     if (!paramTpes)
       throw new Error(`Missing parameter types for ${String(prop)}`);
-    if (index >= paramTpes.length)
+    if ((index as number) >= paramTpes.length)
       throw new Error(
         `Parameter index ${index} out of range for ${String(prop)}`
       );
     metadata(
-      Metadata.key(DecorationKeys.METHODS, prop as string, index.toString()),
-      paramTpes[index]
+      Metadata.key(
+        DecorationKeys.METHODS,
+        prop as string,
+        (index as number).toString()
+      ),
+      paramTpes[index as number]
     )(model, prop);
   };
 }
@@ -261,10 +311,10 @@ export function description(desc: string) {
       descriptor?: any
     ) {
       return metadata(
-        [
+        Metadata.key(
           DecorationKeys.DESCRIPTION,
-          prop ? prop.toString() : DecorationKeys.CLASS,
-        ].join(Metadata.splitter),
+          prop ? prop.toString() : DecorationKeys.CLASS
+        ),
         desc
       )(original, prop, descriptor);
     };

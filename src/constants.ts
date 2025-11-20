@@ -43,12 +43,21 @@ export enum DecorationKeys {
   CONSTRUCTOR = "__original",
   /** @description Collected parameter metadata for configured decorators. */
   PARAMETERS = "parameters",
+  /** @description identifies the decoration flavour. */
+  FLAVOUR = "flavour",
+  /** @description identifies if the model has pending decoration. */
+  DECORATION = "decoration",
   /** @description Reflect metadata key for a property's design type. */
   DESIGN_TYPE = "design:type",
   /** @description Reflect metadata key for recorded constructor parameter types. */
   DESIGN_PARAMS = "design:paramtypes",
   /** @description Reflect metadata key for a method's return type. */
   DESIGN_RETURN = "design:returntype",
+}
+
+export enum DecorationState {
+  PENDING = "pending",
+  ONGOING = "ongoing",
 }
 
 /**

@@ -1,6 +1,13 @@
 import { BasicMetadata, Constructor } from "./types";
-import { DecorationKeys, ObjectKeySplitter } from "../constants";
+import {
+  DecorationKeys,
+  DecorationState,
+  DefaultFlavour,
+  ObjectKeySplitter,
+} from "../constants";
 import "reflect-metadata";
+import { PACKAGE_NAME, VERSION } from "../version";
+import { Decoration } from "../decoration/Decoration";
 
 /**
  * @description Retrieves a nested value from an object given a path.
@@ -151,6 +158,9 @@ export class Metadata {
     return Symbol.for([obj.toString(), obj.name].join(" - "));
   }
 
+  // No scheduling or readiness tracking here; callers should only
+  // use Reflect.getOwnMetadata to read design:type when needed.
+
   /**
    * @description Lists known property keys for a model.
    * @summary Reads the metadata entry and returns the names of properties that have recorded type information.
@@ -194,6 +204,38 @@ export class Metadata {
         (prop ? prop : DecorationKeys.CLASS) as string
       )
     );
+  }
+
+  static flavourOf(model: Constructor): string {
+    return Decoration["flavourResolver"](model);
+  }
+
+  static flavouredAs(flavour: string): Constructor[] {
+    return this.innerGet(Symbol.for(DecorationKeys.FLAVOUR), flavour) || [];
+  }
+
+  static registeredFlavour(model: Constructor): string | undefined {
+    const registry = this.innerGet(Symbol.for(DecorationKeys.FLAVOUR));
+    if (!registry) return undefined;
+    const constr = this.constr(model);
+    let fallback: string | undefined;
+    for (const [flavour, constructors] of Object.entries(
+      registry as Record<string, Constructor[]>
+    )) {
+      if (Array.isArray(constructors)) {
+        const resolved = constructors.some(
+          (registered) => this.constr(registered) === constr
+        );
+        if (resolved) {
+          if (flavour === DefaultFlavour) {
+            fallback = fallback || flavour;
+            continue;
+          }
+          return flavour;
+        }
+      }
+    }
+    return fallback;
   }
 
   /**
@@ -305,6 +347,11 @@ export class Metadata {
     if (key === DecorationKeys.CONSTRUCTOR) return this.constr(model);
     const resolvedModel = this.constr(model);
     const constructors = this.collectConstructorChain(resolvedModel);
+    constructors
+      .filter((c) => this.isDecorated(c) === DecorationState.PENDING)
+      .forEach((constructor) => {
+        Decoration["resolvePendingDecorators"](constructor);
+      });
     if (constructors.length === 0) {
       const fallbackSymbol = Symbol.for(resolvedModel.toString());
       return this.innerGet(fallbackSymbol, key);
@@ -316,6 +363,15 @@ export class Metadata {
     if (collectedValues.length === 0) return undefined;
 
     return this.mergeMetadataChain(collectedValues);
+  }
+
+  private static isDecorated(model: Constructor): boolean | DecorationState {
+    const resolvedModel = this.constr(model);
+    const meta = this.innerGet(
+      this.Symbol(resolvedModel),
+      DecorationKeys.DECORATION
+    );
+    return meta || false;
   }
 
   /**
@@ -541,3 +597,5 @@ export class Metadata {
     return strs.join(this.splitter);
   }
 }
+
+Metadata.registerLibrary(PACKAGE_NAME, VERSION);

@@ -1,10 +1,5 @@
-import {
-  Decoration,
-  DecorationKeys,
-  DefaultFlavour,
-  Metadata,
-  uses,
-} from "../../src/index";
+import { Decoration, DecorationKeys, Metadata, uses } from "../../src/index";
+Decoration.defaultFlavour = "XXX";
 
 describe("Multiple Decoration Compatibility", () => {
   it("Applies multiple decorations without conflict", () => {
@@ -89,7 +84,7 @@ describe("Multiple Decoration Compatibility", () => {
     const meta2 = Metadata.get(Obj2, DecorationKeys.FLAVOUR);
     const meta3 = Metadata.get(Obj3, DecorationKeys.FLAVOUR);
 
-    expect(meta1).toEqual(DefaultFlavour);
+    expect(meta1).toEqual(Decoration.defaultFlavour);
     expect(meta2).toEqual("2");
     expect(meta3).toEqual("3");
 
@@ -122,7 +117,7 @@ describe("Multiple Decoration Compatibility", () => {
       undefined
     );
 
-    expect(Metadata.flavourOf(Obj1)).toEqual(DefaultFlavour);
+    expect(Metadata.flavourOf(Obj1)).toEqual(Decoration.defaultFlavour);
     expect(Metadata.flavourOf(Obj2)).toEqual("2");
     expect(Metadata.flavourOf(Obj3)).toEqual("3");
 

@@ -124,7 +124,7 @@ describe("integration: decoration builder end-to-end", () => {
     Decoration.flavouredAs("vue").for("thing").extend(extraMethodDeco).apply();
 
     // 3) Ensure we resolve flavour to 'vue' at application time so extras are picked
-    Decoration.setFlavourResolver(() => "vue");
+    Decoration["flavourResolver"] = () => "vue";
 
     @deco
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
