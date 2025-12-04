@@ -190,6 +190,21 @@ function diffMetadataBuckets(
   return result;
 }
 
+function cloneArgsOverrides(
+  overrides?: Record<number, any[]>
+): Record<number, any[]> | undefined {
+  if (!overrides) return undefined;
+  const clone: Record<number, any[]> = {};
+  Object.keys(overrides).forEach((key) => {
+    clone[key as any] = overrides[key as any].map((arg) =>
+      typeof arg === "object" && arg !== null
+        ? cloneMetadataValue(arg)
+        : arg
+    );
+  });
+  return clone;
+}
+
 function getNodeAtPath(
   bucket: Record<string | symbol, any>,
   path: (string | symbol)[]
@@ -233,8 +248,10 @@ interface PendingDecorator {
     overrides?: Record<number, any[]>
   ) => PropertyDecorator | MethodDecorator;
   argsOverride?: Record<number, any[]>;
+  argsFactory?: () => Record<number, any[]> | undefined;
   key: string; // unique identifier
   lastAppliedPass?: number;
+  lastAppliedFlavour?: string;
   metadataDiff?: MetadataDiffEntry[];
   descriptorSnapshot?: PropertyDescriptor | undefined;
   descriptorWasOwn?: boolean;
@@ -388,7 +405,10 @@ export class Decoration implements IDecorationBuilder {
           ? { ...currentDescriptor }
           : undefined;
       }
-      const descriptorResult = entry.callback(flavour, entry.argsOverride)(
+      const overridesForCall = entry.argsFactory
+        ? entry.argsFactory()
+        : cloneArgsOverrides(entry.argsOverride);
+      const descriptorResult = entry.callback(flavour, overridesForCall)(
         entry.target,
         entry.propertyKey as string | symbol,
         entry.descriptor as TypedPropertyDescriptor<any>
@@ -460,13 +480,15 @@ export class Decoration implements IDecorationBuilder {
     }:${String(propertyKey || "class")}:${Date.now()}:${Math.random()}`;
 
     const state = this.getTargetState(owner);
+    const argsOverrideClone = cloneArgsOverrides(argsOverride);
     const entry: PendingDecorator = {
       owner,
       target,
       propertyKey,
       descriptor,
       callback,
-      argsOverride,
+      argsOverride: argsOverrideClone,
+      argsFactory: () => cloneArgsOverrides(argsOverrideClone),
       key,
       definitionKey,
     };
@@ -478,6 +500,7 @@ export class Decoration implements IDecorationBuilder {
         Decoration.defaultFlavour;
       this.applyPendingEntry(entry, flavourToUse);
       entry.lastAppliedPass = state.passId;
+      entry.lastAppliedFlavour = flavourToUse;
       return flavourToUse;
     };
 
@@ -569,9 +592,13 @@ export class Decoration implements IDecorationBuilder {
         if (!hasBeenApplied) {
           this.applyPendingEntry(entry, resolvedFlavour);
           entry.lastAppliedPass = currentPass;
+          entry.lastAppliedFlavour = resolvedFlavour;
           continue;
         }
-        if (!hasOverride) {
+        if (
+          entry.lastAppliedFlavour === resolvedFlavour ||
+          !hasOverride
+        ) {
           entry.lastAppliedPass = currentPass;
           continue;
         }
@@ -581,6 +608,7 @@ export class Decoration implements IDecorationBuilder {
         restorePropertyDescriptor(entry);
         this.applyPendingEntry(entry, resolvedFlavour);
         entry.lastAppliedPass = currentPass;
+        entry.lastAppliedFlavour = resolvedFlavour;
       }
     } else {
       let index = cursor;
@@ -588,11 +616,12 @@ export class Decoration implements IDecorationBuilder {
         const entry = state.pending[index++];
         if (!entry) continue;
         if (entry.lastAppliedPass === currentPass) continue;
-          this.applyPendingEntry(entry, resolvedFlavour);
-          entry.lastAppliedPass = currentPass;
-        }
-        state.appliedCount = state.pending.length;
+        this.applyPendingEntry(entry, resolvedFlavour);
+        entry.lastAppliedPass = currentPass;
+        entry.lastAppliedFlavour = resolvedFlavour;
       }
+      state.appliedCount = state.pending.length;
+    }
     } finally {
       state.applying = false;
     }
@@ -665,7 +694,11 @@ export class Decoration implements IDecorationBuilder {
         "args" in entry &&
         Array.isArray(entry.args)
       ) {
-        overrides[index] = [...entry.args];
+        overrides[index] = entry.args.map((arg) =>
+          typeof arg === "object" && arg !== null
+            ? cloneMetadataValue(arg)
+            : arg
+        );
       }
     });
     return Object.keys(overrides).length ? overrides : undefined;
@@ -817,7 +850,14 @@ export class Decoration implements IDecorationBuilder {
                 defaultArgsByIndex[candidateIndex] ??
                 defaultArgsByIndex[0] ??
                 []));
-          decoratorFn = entry.decorator(...args) as DecoratorTypes;
+          const invocationArgs = args.map((arg: unknown) =>
+            typeof arg === "object" && arg !== null
+              ? cloneMetadataValue(arg)
+              : arg
+          );
+          decoratorFn = entry.decorator(
+            ...invocationArgs
+          ) as DecoratorTypes;
         } else if (typeof d === "function") {
           decoratorFn = d as DecoratorTypes;
         } else {
