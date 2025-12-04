@@ -81,6 +81,148 @@ export type ExtendDecoratorData =
   | Omit<DecoratorFactoryArgs, "args">;
 type StoredDecoratorData = DecoratorData | ExtendDecoratorData;
 
+type MetadataDiffEntry = {
+  path: (string | symbol)[];
+  previousValue: any;
+  existed: boolean;
+};
+
+function isPlainObject(value: unknown): value is Record<string | symbol, any> {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    (value as Record<string, any>).constructor === Object
+  );
+}
+
+function cloneMetadataValue<T>(value: T): T {
+  if (value === null || typeof value !== "object") return value;
+  if (Array.isArray(value)) {
+    return value.map((item) => cloneMetadataValue(item)) as unknown as T;
+  }
+  if (value instanceof Date) {
+    return new Date(value.getTime()) as unknown as T;
+  }
+  if (value instanceof Set) {
+    return new Set(
+      Array.from(value).map((item) => cloneMetadataValue(item))
+    ) as unknown as T;
+  }
+  if (value instanceof Map) {
+    return new Map(
+      Array.from(value.entries()).map(([k, v]) => [k, cloneMetadataValue(v)])
+    ) as unknown as T;
+  }
+  if ((value as Record<string, any>).constructor !== Object) {
+    return value;
+  }
+  const clone: Record<string | symbol, any> = {};
+  Reflect.ownKeys(value as Record<string | symbol, any>).forEach((key) => {
+    clone[key as any] = cloneMetadataValue(
+      (value as Record<string | symbol, any>)[key as any]
+    );
+  });
+  return clone as T;
+}
+
+function diffMetadataBuckets(
+  before?: Record<string | symbol, any>,
+  after?: Record<string | symbol, any>,
+  basePath: (string | symbol)[] = [],
+  result: MetadataDiffEntry[] = []
+): MetadataDiffEntry[] {
+  const keys = new Set<PropertyKey>([
+    ...(before ? Reflect.ownKeys(before) : []),
+    ...(after ? Reflect.ownKeys(after) : []),
+  ]);
+  keys.forEach((key) => {
+    const prevExists = before
+      ? Object.prototype.hasOwnProperty.call(before, key as any)
+      : false;
+    const nextExists = after
+      ? Object.prototype.hasOwnProperty.call(after, key as any)
+      : false;
+    const prevValue = prevExists ? before?.[key as any] : undefined;
+    const nextValue = nextExists ? after?.[key as any] : undefined;
+    if (!nextExists) {
+      result.push({
+        path: [...basePath, key as string | symbol],
+        previousValue: cloneMetadataValue(prevValue),
+        existed: true,
+      });
+      return;
+    }
+    if (!prevExists) {
+      if (isPlainObject(nextValue)) {
+        diffMetadataBuckets(
+          undefined,
+          nextValue as Record<string | symbol, any>,
+          [...basePath, key as string | symbol],
+          result
+        );
+        return;
+      }
+      result.push({
+        path: [...basePath, key as string | symbol],
+        previousValue: undefined,
+        existed: false,
+      });
+      return;
+    }
+    if (isPlainObject(prevValue) && isPlainObject(nextValue)) {
+      diffMetadataBuckets(
+        prevValue as Record<string | symbol, any>,
+        nextValue as Record<string | symbol, any>,
+        [...basePath, key as string | symbol],
+        result
+      );
+      return;
+    }
+    if (prevValue !== nextValue) {
+      result.push({
+        path: [...basePath, key as string | symbol],
+        previousValue: cloneMetadataValue(prevValue),
+        existed: true,
+      });
+    }
+  });
+  return result;
+}
+
+function getNodeAtPath(
+  bucket: Record<string | symbol, any>,
+  path: (string | symbol)[]
+): Record<string | symbol, any> | undefined {
+  let current: Record<string | symbol, any> | undefined = bucket;
+  for (const segment of path) {
+    if (!current || !isPlainObject(current[segment as any])) {
+      return undefined;
+    }
+    current = current[segment as any];
+  }
+  return current;
+}
+
+function pruneEmptyAncestors(
+  bucket: Record<string | symbol, any>,
+  path: (string | symbol)[]
+): void {
+  for (let i = path.length; i > 0; i--) {
+    const ancestorPath = path.slice(0, i);
+    const parentPath = ancestorPath.slice(0, -1);
+    const key = ancestorPath[ancestorPath.length - 1];
+    const parent =
+      parentPath.length === 0
+        ? bucket
+        : getNodeAtPath(bucket, parentPath);
+    if (!parent || !isPlainObject(parent)) break;
+    const value = parent[key as any];
+    if (!isPlainObject(value) || Reflect.ownKeys(value).length > 0) break;
+    delete parent[key as any];
+  }
+}
+
 interface PendingDecorator {
   owner: any;
   target: any;
@@ -93,6 +235,10 @@ interface PendingDecorator {
   argsOverride?: Record<number, any[]>;
   key: string; // unique identifier
   lastAppliedPass?: number;
+  metadataDiff?: MetadataDiffEntry[];
+  descriptorSnapshot?: PropertyDescriptor | undefined;
+  descriptorWasOwn?: boolean;
+  definitionKey?: string;
 }
 
 interface TargetDecorationState {
@@ -104,6 +250,7 @@ interface TargetDecorationState {
   appliedCount?: number;
   applying?: boolean;
   passId?: number;
+  resolveScheduled?: boolean;
 }
 
 /**
@@ -214,7 +361,33 @@ export class Decoration implements IDecorationBuilder {
     entry: PendingDecorator,
     flavour: string
   ): void {
+    const metadataStore = (Metadata as any)["_metadata"] as Record<
+      symbol,
+      Record<string | symbol, any>
+    >;
+    const metadataSymbol = Metadata.Symbol(entry.owner);
+    const beforeSnapshot =
+      typeof entry.metadataDiff === "undefined"
+        ? cloneMetadataValue(metadataStore[metadataSymbol])
+        : undefined;
     try {
+      if (
+        typeof entry.propertyKey !== "undefined" &&
+        typeof entry.descriptorSnapshot === "undefined" &&
+        entry.target
+      ) {
+        const currentDescriptor = Object.getOwnPropertyDescriptor(
+          entry.target,
+          entry.propertyKey
+        );
+        entry.descriptorWasOwn = Object.prototype.hasOwnProperty.call(
+          entry.target,
+          entry.propertyKey
+        );
+        entry.descriptorSnapshot = currentDescriptor
+          ? { ...currentDescriptor }
+          : undefined;
+      }
       const descriptorResult = entry.callback(flavour, entry.argsOverride)(
         entry.target,
         entry.propertyKey as string | symbol,
@@ -230,6 +403,13 @@ export class Decoration implements IDecorationBuilder {
           entry.target,
           entry.propertyKey,
           descriptorResult as PropertyDescriptor
+        );
+      }
+      if (typeof entry.metadataDiff === "undefined") {
+        const afterSnapshot = cloneMetadataValue(metadataStore[metadataSymbol]);
+        entry.metadataDiff = diffMetadataBuckets(
+          beforeSnapshot as Record<string | symbol, any> | undefined,
+          afterSnapshot as Record<string | symbol, any> | undefined
         );
       }
     } catch (error) {
@@ -250,6 +430,19 @@ export class Decoration implements IDecorationBuilder {
     Metadata.set(owner, DecorationKeys.DECORATION, DecorationState.PENDING);
   }
 
+  private static scheduleDefaultResolve(owner: any): void {
+    if (!owner) return;
+    const state = this.getTargetState(owner);
+    if (state.resolveScheduled || state.resolved || state.applying) return;
+    state.resolveScheduled = true;
+    Promise.resolve().then(() => {
+      state.resolveScheduled = false;
+      if (!state.resolved) {
+        this.resolvePendingDecorators(owner);
+      }
+    });
+  }
+
   protected static registerPendingDecorator(
     owner: any,
     target: any,
@@ -259,7 +452,8 @@ export class Decoration implements IDecorationBuilder {
     ) => PropertyDecorator | MethodDecorator,
     propertyKey?: string | symbol,
     descriptor?: TypedPropertyDescriptor<any> | number,
-    argsOverride?: Record<number, any[]>
+    argsOverride?: Record<number, any[]>,
+    definitionKey?: string
   ): string {
     const key = `${
       owner?.name || "anonymous"
@@ -274,6 +468,7 @@ export class Decoration implements IDecorationBuilder {
       callback,
       argsOverride,
       key,
+      definitionKey,
     };
 
     const applyImmediately = () => {
@@ -286,17 +481,25 @@ export class Decoration implements IDecorationBuilder {
       return flavourToUse;
     };
 
+    const registerEntry = () => {
+      state.pending.push(entry);
+      return entry;
+    };
+
     if (state.directApply) {
+      registerEntry();
       const flavourToUse = applyImmediately();
+      state.appliedCount = state.pending.length;
       state.flavour = flavourToUse;
       Metadata.set(owner, DecorationKeys.DECORATION, true);
       return key;
     }
 
-    state.pending.push(entry);
+    registerEntry();
 
     if (state.applying) {
       applyImmediately();
+      return key;
     }
 
     if (Decoration.flavourResolver !== flavourResolver) {
@@ -311,6 +514,7 @@ export class Decoration implements IDecorationBuilder {
       }
     }
 
+    this.scheduleDefaultResolve(owner);
     return key;
   }
 
@@ -322,6 +526,7 @@ export class Decoration implements IDecorationBuilder {
       typeof target === "function" ? target : target?.constructor || target;
     if (!owner) return;
     const state = this.getTargetState(owner);
+    state.resolveScheduled = false;
     if (!state.pending.length && !flavour) return;
 
     const resolvedFlavour =
@@ -350,20 +555,39 @@ export class Decoration implements IDecorationBuilder {
     state.passId = currentPass;
     state.applying = true;
     try {
-      if (shouldFinalize) {
-        while (state.pending.length) {
-          const entry = state.pending.shift();
-          if (!entry) continue;
-          if (entry.lastAppliedPass === currentPass) continue;
+    if (shouldFinalize) {
+      for (const entry of state.pending) {
+        if (!entry) continue;
+        if (entry.lastAppliedPass === currentPass) continue;
+        const hasOverride = this.shouldOverrideEntry(
+          entry,
+          resolvedFlavour
+        );
+        const hasBeenApplied =
+          typeof entry.metadataDiff !== "undefined" ||
+          typeof entry.descriptorSnapshot !== "undefined";
+        if (!hasBeenApplied) {
           this.applyPendingEntry(entry, resolvedFlavour);
           entry.lastAppliedPass = currentPass;
+          continue;
         }
-      } else {
-        let index = cursor;
-        while (index < state.pending.length) {
-          const entry = state.pending[index++];
-          if (!entry) continue;
-          if (entry.lastAppliedPass === currentPass) continue;
+        if (!hasOverride) {
+          entry.lastAppliedPass = currentPass;
+          continue;
+        }
+        if (entry.metadataDiff?.length) {
+          revertMetadataDiff(entry.owner, entry.metadataDiff);
+        }
+        restorePropertyDescriptor(entry);
+        this.applyPendingEntry(entry, resolvedFlavour);
+        entry.lastAppliedPass = currentPass;
+      }
+    } else {
+      let index = cursor;
+      while (index < state.pending.length) {
+        const entry = state.pending[index++];
+        if (!entry) continue;
+        if (entry.lastAppliedPass === currentPass) continue;
           this.applyPendingEntry(entry, resolvedFlavour);
           entry.lastAppliedPass = currentPass;
         }
@@ -377,8 +601,7 @@ export class Decoration implements IDecorationBuilder {
     state.resolved = true;
     state.lastAppliedFlavour = resolvedFlavour;
     if (shouldFinalize) {
-      state.pending.length = 0;
-      state.appliedCount = 0;
+      state.appliedCount = state.pending.length;
       if (resolvedFlavour !== Decoration.defaultFlavour) {
         state.directApply = true;
       }
@@ -676,7 +899,8 @@ export class Decoration implements IDecorationBuilder {
           },
           propertyKey,
           descriptor,
-          argsOverride
+          argsOverride,
+          key
         );
         Decoration.resolvePendingDecorators(owner);
         if (propertyKey && !descriptor) {
@@ -747,6 +971,32 @@ export class Decoration implements IDecorationBuilder {
     Decoration.flavourResolver = resolver;
   }
 
+  private static shouldOverrideEntry(
+    entry: PendingDecorator,
+    flavour: string
+  ): boolean {
+    if (!entry.definitionKey) return false;
+    if (flavour === Decoration.defaultFlavour) return false;
+    const cache = Decoration.decorators[entry.definitionKey];
+    if (!cache) return false;
+    const flavourBucket = cache[flavour];
+    if (!flavourBucket) return false;
+    const defaultBucket = cache[Decoration.defaultFlavour];
+    const hasDecorators =
+      flavourBucket.decorators && flavourBucket.decorators.size > 0;
+    const hasExtras =
+      flavourBucket.extras instanceof Set &&
+      flavourBucket.extras.size > 0;
+    if (!hasDecorators && !hasExtras) return false;
+    if (!defaultBucket) return true;
+    const decoratorsMatch =
+      !hasDecorators ||
+      flavourBucket.decorators === defaultBucket.decorators;
+    const extrasMatch =
+      !hasExtras || flavourBucket.extras === defaultBucket.extras;
+    return !(decoratorsMatch && extrasMatch);
+  }
+
   /**
    * @description Convenience static entry to start a decoration builder.
    * @summary Creates a new Decoration instance and initiates the builder chain with the provided key.
@@ -765,5 +1015,59 @@ export class Decoration implements IDecorationBuilder {
    */
   static flavouredAs(flavour: string): DecorationBuilderStart {
     return new Decoration(flavour);
+  }
+}
+function revertMetadataDiff(
+  owner: any,
+  diff?: MetadataDiffEntry[]
+): void {
+  if (!diff || !diff.length) {
+    return;
+  }
+  const metadataStore = (Metadata as any)["_metadata"] as Record<
+    symbol,
+    Record<string | symbol, any>
+  >;
+  const symbol = Metadata.Symbol(owner);
+  const bucket =
+    metadataStore[symbol] ||
+    (metadataStore[symbol] = {} as Record<string | symbol, any>);
+  diff.forEach(({ path, previousValue, existed }) => {
+    if (!path.length) return;
+    let target: Record<string | symbol, any> = bucket;
+    for (let i = 0; i < path.length - 1; i++) {
+      const key = path[i];
+      if (!isPlainObject(target[key as any])) {
+        target[key as any] = {};
+      }
+      target = target[key as any];
+    }
+    const key = path[path.length - 1];
+    if (!existed) {
+      delete target[key as any];
+      pruneEmptyAncestors(bucket, path.slice(0, -1));
+    } else {
+      target[key as any] = cloneMetadataValue(previousValue);
+    }
+  });
+}
+
+function restorePropertyDescriptor(entry: PendingDecorator): void {
+  if (!entry || typeof entry.propertyKey === "undefined") return;
+  const target = entry.target;
+  if (!target || typeof entry.descriptorWasOwn === "undefined") return;
+  const propertyKey = entry.propertyKey;
+  const snapshot = entry.descriptorSnapshot;
+  if (entry.descriptorWasOwn) {
+    if (snapshot) {
+      Object.defineProperty(target, propertyKey, snapshot);
+    } else {
+      delete (target as Record<string | symbol, any>)[propertyKey as any];
+    }
+  } else {
+    delete (target as Record<string | symbol, any>)[propertyKey as any];
+    if (snapshot) {
+      Object.defineProperty(target, propertyKey, snapshot);
+    }
   }
 }
