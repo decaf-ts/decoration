@@ -15,7 +15,7 @@ export function metadata(key: string, value: any) {
   return function metadata(
     model: any,
     prop?: any,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     descriptor?: PropertyDescriptor | number
   ) {
     let targetModel = model;
@@ -24,6 +24,26 @@ export function metadata(key: string, value: any) {
         typeof model === "function"
           ? model
           : (model as { constructor?: any }).constructor || model;
+      if (typeof descriptor === "undefined") {
+        const metadataTarget =
+          typeof model === "function" ? (model as any).prototype : model;
+        const designType = Reflect.getOwnMetadata(
+          DecorationKeys.DESIGN_TYPE,
+          metadataTarget,
+          prop
+        );
+        const propKey = Metadata.key(
+          DecorationKeys.PROPERTIES,
+          prop.toString()
+        );
+        const existing = Metadata.get(targetModel, propKey);
+        if (
+          typeof designType !== "undefined" ||
+          typeof existing === "undefined"
+        ) {
+          Metadata.set(targetModel, propKey, designType);
+        }
+      }
     }
     Metadata.set(targetModel, key, value);
   };
@@ -255,8 +275,16 @@ export function apply(
     descriptor?: PropertyDescriptor | number
   ) => {
     for (const decorator of decorators) {
-      if (target instanceof Function && !descriptor) {
-        (decorator as ClassDecorator)(target);
+      if (typeof propertyKey === "undefined") {
+        (decorator as ClassDecorator)(target as any);
+        continue;
+      }
+      if (typeof descriptor === "number") {
+        (decorator as ParameterDecorator)(
+          target,
+          propertyKey as string | symbol,
+          descriptor
+        );
         continue;
       }
       (decorator as MethodDecorator | PropertyDecorator)(

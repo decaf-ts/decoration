@@ -425,6 +425,13 @@ export class Decoration implements IDecorationBuilder {
           descriptorResult as PropertyDescriptor
         );
       }
+      if (
+        typeof entry.propertyKey !== "undefined" &&
+        typeof entry.descriptor === "undefined"
+      ) {
+        // Ensure property metadata is always registered for member decorators.
+        prop()(entry.owner ?? entry.target, entry.propertyKey);
+      }
       if (typeof entry.metadataDiff === "undefined") {
         const afterSnapshot = cloneMetadataValue(metadataStore[metadataSymbol]);
         entry.metadataDiff = diffMetadataBuckets(
@@ -1074,6 +1081,7 @@ function revertMetadataDiff(
     (metadataStore[symbol] = {} as Record<string | symbol, any>);
   diff.forEach(({ path, previousValue, existed }) => {
     if (!path.length) return;
+    if (path[0] === DecorationKeys.PROPERTIES) return;
     let target: Record<string | symbol, any> = bucket;
     for (let i = 0; i < path.length - 1; i++) {
       const key = path[i];

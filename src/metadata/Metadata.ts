@@ -135,6 +135,11 @@ export class Metadata {
    * @summary Maps a Symbol derived from the constructor to its metadata object, enabling efficient lookup.
    */
   private static _metadata: Record<symbol, any> = {};
+  /**
+   * @description Property index store keyed by constructor symbol
+   * @summary Tracks property keys that have been decorated, independent of metadata bucket mutations.
+   */
+  private static _propertiesIndex: Record<symbol, Set<string>> = {};
 
   /**
    * @description Path delimiter for nested metadata keys
@@ -168,7 +173,11 @@ export class Metadata {
    * @return {string[]|undefined} Array of property names or `undefined` if no metadata exists.
    */
   static properties(model: Constructor): string[] | undefined {
-    const meta = this.get(model);
+    const resolvedModel = this.constr(model);
+    const symbol = this.Symbol(resolvedModel);
+    const indexed = this._propertiesIndex[symbol];
+    if (indexed && indexed.size) return [...indexed];
+    const meta = this.get(resolvedModel);
     if (!meta || !meta.properties) return undefined;
     return Object.keys(meta.properties);
   }
@@ -544,6 +553,26 @@ export class Metadata {
     if (typeof model !== "string") model = this.constr(model) || model;
     const symbol =
       typeof model === "string" ? Symbol.for(model) : this.Symbol(model);
+    if (typeof key === "string") {
+      const propPrefix = `${DecorationKeys.PROPERTIES}${this.splitter}`;
+      if (key.startsWith(propPrefix)) {
+        const prop = key.slice(propPrefix.length);
+        if (prop.length) {
+          const set = this._propertiesIndex[symbol] || new Set<string>();
+          set.add(prop);
+          this._propertiesIndex[symbol] = set;
+        }
+      } else if (
+        key === DecorationKeys.PROPERTIES &&
+        this.isPlainObject(value)
+      ) {
+        const set = this._propertiesIndex[symbol] || new Set<string>();
+        Object.keys(value as Record<string, any>).forEach((prop) => {
+          set.add(prop);
+        });
+        if (set.size) this._propertiesIndex[symbol] = set;
+      }
+    }
     this.innerSet(symbol, key, value);
     if (
       typeof model !== "string" &&
