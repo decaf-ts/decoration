@@ -26,7 +26,7 @@ The decoration module provides a small, composable system for building and apply
 
 Documentation available [here](https://decaf-ts.github.io/ts-workspace/)
 
-Minimal size: 5.3 KB kb gzipped
+Minimal size: 5.4 KB kb gzipped
 
 
 # Description

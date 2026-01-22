@@ -7,7 +7,10 @@ import {
 } from "../constants";
 import "reflect-metadata";
 import { PACKAGE_NAME, VERSION } from "../version";
-import { Decoration } from "../decoration/Decoration";
+import {
+  resolvePendingDecorators,
+  resolveFlavour,
+} from "../decoration/metadataLink";
 
 /**
  * @description Retrieves a nested value from an object given a path.
@@ -216,7 +219,7 @@ export class Metadata {
   }
 
   static flavourOf(model: Constructor): string {
-    return Decoration["flavourResolver"](model);
+    return resolveFlavour(model);
   }
 
   static flavouredAs(flavour: string): Constructor[] {
@@ -359,7 +362,7 @@ export class Metadata {
     constructors
       .filter((c) => this.isDecorated(c) === DecorationState.PENDING)
       .forEach((constructor) => {
-        Decoration["resolvePendingDecorators"](constructor);
+        resolvePendingDecorators(constructor);
       });
     if (constructors.length === 0) {
       const fallbackSymbol = Symbol.for(resolvedModel.toString());

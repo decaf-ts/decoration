@@ -8,7 +8,12 @@ import {
 } from "./types";
 import { DecorationKeys, DecorationState, DefaultFlavour } from "../constants";
 import { Metadata } from "../metadata/Metadata";
-import { method, prop, uses } from "../decorators";
+import { assignFlavour } from "./flavourRegistry";
+import {
+  registerFlavourResolver,
+  registerPendingResolver,
+} from "./metadataLink";
+import { method, prop } from "../shared/core";
 
 /**
  * @description Default resolver that returns the current default flavour.
@@ -197,9 +202,7 @@ function cloneArgsOverrides(
   const clone: Record<number, any[]> = {};
   Object.keys(overrides).forEach((key) => {
     clone[key as any] = overrides[key as any].map((arg) =>
-      typeof arg === "object" && arg !== null
-        ? cloneMetadataValue(arg)
-        : arg
+      typeof arg === "object" && arg !== null ? cloneMetadataValue(arg) : arg
     );
   });
   return clone;
@@ -228,9 +231,7 @@ function pruneEmptyAncestors(
     const parentPath = ancestorPath.slice(0, -1);
     const key = ancestorPath[ancestorPath.length - 1];
     const parent =
-      parentPath.length === 0
-        ? bucket
-        : getNodeAtPath(bucket, parentPath);
+      parentPath.length === 0 ? bucket : getNodeAtPath(bucket, parentPath);
     if (!parent || !isPlainObject(parent)) break;
     const value = parent[key as any];
     if (!isPlainObject(value) || Reflect.ownKeys(value).length > 0) break;
@@ -335,6 +336,13 @@ export class Decoration implements IDecorationBuilder {
    * @summary Resolver function that determines the appropriate flavour for a given target.
    */
   private static flavourResolver: FlavourResolver = flavourResolver;
+
+  static {
+    registerFlavourResolver((model) => this.flavourResolver(model));
+    registerPendingResolver((target, flavour) =>
+      this.resolvePendingDecorators(target, flavour)
+    );
+  }
 
   /**
    * @description Set of decorators for the current context.
@@ -455,6 +463,28 @@ export class Decoration implements IDecorationBuilder {
     state.resolved = false;
     if (!state.flavour) state.flavour = Decoration.defaultFlavour;
     Metadata.set(owner, DecorationKeys.DECORATION, DecorationState.PENDING);
+  }
+
+  private static ensureDefaultFlavour(owner: any): void {
+    if (!owner) return;
+    const canonical = assignFlavour(
+      owner,
+      Decoration.defaultFlavour,
+      Decoration.defaultFlavour
+    );
+    let resolved: string | undefined;
+    try {
+      resolved = Decoration["flavourResolver"]
+        ? Decoration["flavourResolver"](canonical)
+        : undefined;
+    } catch {
+      resolved = undefined;
+    }
+    if (resolved && resolved !== Decoration.defaultFlavour) {
+      Decoration["resolvePendingDecorators"](canonical, resolved);
+    } else {
+      Decoration["markPending"](canonical);
+    }
   }
 
   private static scheduleDefaultResolve(owner: any): void {
@@ -585,50 +615,44 @@ export class Decoration implements IDecorationBuilder {
     state.passId = currentPass;
     state.applying = true;
     try {
-    if (shouldFinalize) {
-      for (const entry of state.pending) {
-        if (!entry) continue;
-        if (entry.lastAppliedPass === currentPass) continue;
-        const hasOverride = this.shouldOverrideEntry(
-          entry,
-          resolvedFlavour
-        );
-        const hasBeenApplied =
-          typeof entry.metadataDiff !== "undefined" ||
-          typeof entry.descriptorSnapshot !== "undefined";
-        if (!hasBeenApplied) {
+      if (shouldFinalize) {
+        for (const entry of state.pending) {
+          if (!entry) continue;
+          if (entry.lastAppliedPass === currentPass) continue;
+          const hasOverride = this.shouldOverrideEntry(entry, resolvedFlavour);
+          const hasBeenApplied =
+            typeof entry.metadataDiff !== "undefined" ||
+            typeof entry.descriptorSnapshot !== "undefined";
+          if (!hasBeenApplied) {
+            this.applyPendingEntry(entry, resolvedFlavour);
+            entry.lastAppliedPass = currentPass;
+            entry.lastAppliedFlavour = resolvedFlavour;
+            continue;
+          }
+          if (entry.lastAppliedFlavour === resolvedFlavour || !hasOverride) {
+            entry.lastAppliedPass = currentPass;
+            continue;
+          }
+          if (entry.metadataDiff?.length) {
+            revertMetadataDiff(entry.owner, entry.metadataDiff);
+          }
+          restorePropertyDescriptor(entry);
           this.applyPendingEntry(entry, resolvedFlavour);
           entry.lastAppliedPass = currentPass;
           entry.lastAppliedFlavour = resolvedFlavour;
-          continue;
         }
-        if (
-          entry.lastAppliedFlavour === resolvedFlavour ||
-          !hasOverride
-        ) {
+      } else {
+        let index = cursor;
+        while (index < state.pending.length) {
+          const entry = state.pending[index++];
+          if (!entry) continue;
+          if (entry.lastAppliedPass === currentPass) continue;
+          this.applyPendingEntry(entry, resolvedFlavour);
           entry.lastAppliedPass = currentPass;
-          continue;
+          entry.lastAppliedFlavour = resolvedFlavour;
         }
-        if (entry.metadataDiff?.length) {
-          revertMetadataDiff(entry.owner, entry.metadataDiff);
-        }
-        restorePropertyDescriptor(entry);
-        this.applyPendingEntry(entry, resolvedFlavour);
-        entry.lastAppliedPass = currentPass;
-        entry.lastAppliedFlavour = resolvedFlavour;
+        state.appliedCount = state.pending.length;
       }
-    } else {
-      let index = cursor;
-      while (index < state.pending.length) {
-        const entry = state.pending[index++];
-        if (!entry) continue;
-        if (entry.lastAppliedPass === currentPass) continue;
-        this.applyPendingEntry(entry, resolvedFlavour);
-        entry.lastAppliedPass = currentPass;
-        entry.lastAppliedFlavour = resolvedFlavour;
-      }
-      state.appliedCount = state.pending.length;
-    }
     } finally {
       state.applying = false;
     }
@@ -862,9 +886,7 @@ export class Decoration implements IDecorationBuilder {
               ? cloneMetadataValue(arg)
               : arg
           );
-          decoratorFn = entry.decorator(
-            ...invocationArgs
-          ) as DecoratorTypes;
+          decoratorFn = entry.decorator(...invocationArgs) as DecoratorTypes;
         } else if (typeof d === "function") {
           decoratorFn = d as DecoratorTypes;
         } else {
@@ -936,7 +958,7 @@ export class Decoration implements IDecorationBuilder {
           Metadata.Symbol(owner),
           DecorationKeys.FLAVOUR
         );
-        if (!currentFlavour) uses(Decoration.defaultFlavour)(owner);
+        if (!currentFlavour) Decoration.ensureDefaultFlavour(owner);
         const argsOverride = this.snapshotDecoratorArgs();
         Decoration.registerPendingDecorator(
           owner,
@@ -1032,13 +1054,11 @@ export class Decoration implements IDecorationBuilder {
     const hasDecorators =
       flavourBucket.decorators && flavourBucket.decorators.size > 0;
     const hasExtras =
-      flavourBucket.extras instanceof Set &&
-      flavourBucket.extras.size > 0;
+      flavourBucket.extras instanceof Set && flavourBucket.extras.size > 0;
     if (!hasDecorators && !hasExtras) return false;
     if (!defaultBucket) return true;
     const decoratorsMatch =
-      !hasDecorators ||
-      flavourBucket.decorators === defaultBucket.decorators;
+      !hasDecorators || flavourBucket.decorators === defaultBucket.decorators;
     const extrasMatch =
       !hasExtras || flavourBucket.extras === defaultBucket.extras;
     return !(decoratorsMatch && extrasMatch);
@@ -1064,10 +1084,7 @@ export class Decoration implements IDecorationBuilder {
     return new Decoration(flavour);
   }
 }
-function revertMetadataDiff(
-  owner: any,
-  diff?: MetadataDiffEntry[]
-): void {
+function revertMetadataDiff(owner: any, diff?: MetadataDiffEntry[]): void {
   if (!diff || !diff.length) {
     return;
   }

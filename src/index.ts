@@ -6,6 +6,7 @@
 
 export * from "./decoration";
 export * from "./metadata";
+export * from "./shared";
 export * from "./constants";
 export * from "./decorators";
 export * from "./version";

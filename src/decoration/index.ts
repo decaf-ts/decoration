@@ -4,4 +4,6 @@
  */
 
 export * from "./Decoration";
+export * from "./flavourRegistry";
+export * from "./metadataLink";
 export * from "./types";
