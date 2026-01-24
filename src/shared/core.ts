@@ -48,6 +48,15 @@ export function metadata(key: string, value: any) {
   };
 }
 
+/**
+ * @description Assigns an array of metadata values to a target.
+ * @summary Decorator factory that appends values to a metadata array, ensuring uniqueness and preserving existing entries.
+ * @param {string} key Metadata key to associate with the target.
+ * @param {...any} data Values to add to the metadata array.
+ * @return {ClassDecorator|MethodDecorator|PropertyDecorator|ParameterDecorator} Decorator that updates the metadata array when applied.
+ * @function metadataArray
+ * @category Decorators
+ */
 export function metadataArray(key: string, ...data: any[]) {
   return function metadataArray(
     target: any,

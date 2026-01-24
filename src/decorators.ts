@@ -16,6 +16,14 @@ export {
   methodMetadata,
 } from "./shared/core";
 
+/**
+ * @description Assigns a flavour to a target.
+ * @summary Decorator factory that assigns a specific flavour to a class, enabling flavour-aware decorator selection.
+ * @param {string} flavour Flavour identifier to assign.
+ * @return {ClassDecorator} Decorator that assigns the flavour when applied.
+ * @function uses
+ * @category Class Decorators
+ */
 export function uses(flavour: string) {
   return (object: any) => {
     const constr = assignFlavour(object, flavour, Decoration.defaultFlavour);

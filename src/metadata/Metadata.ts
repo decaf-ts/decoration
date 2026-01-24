@@ -151,7 +151,7 @@ export class Metadata {
   static splitter = ObjectKeySplitter;
   /**
    * @description Symbol key used to mirror metadata on the constructor
-   * @summary When mirroring is enabled, the metadata object is defined on the constructor under this non-enumerable key.
+   * @summary When mirroring is enabled, the metadata object is defined on the constructor under the non-enumerable baseKey.
    */
   static baseKey = DecorationKeys.REFLECT;
   /**

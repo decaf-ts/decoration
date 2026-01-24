@@ -4,12 +4,14 @@ import { Metadata } from "../metadata/Metadata";
 const FLAVOUR_BUCKET_SYMBOL = Symbol.for(DecorationKeys.FLAVOUR);
 
 /**
- * Updates the metadata registry to associate a constructor with the provided flavour.
- * Removes the constructor from its previous flavour bucket, registers it under the new flavour, and mirrors the flavour value on the constructor.
- * @param object Target object being decorated.
- * @param flavour Flavour identifier to assign.
- * @param defaultFlavour Fallback flavour used when no previous flavour is recorded.
- * @returns Canonical constructor associated with the target.
+ * @description Updates the metadata registry to associate a constructor with the provided flavour.
+ * @summary Removes the constructor from its previous flavour bucket, registers it under the new flavour, and mirrors the flavour value on the constructor.
+ * @param {object} object Target object being decorated.
+ * @param {string} flavour Flavour identifier to assign.
+ * @param {string} defaultFlavour Fallback flavour used when no previous flavour is recorded.
+ * @return {any} Canonical constructor associated with the target.
+ * @function assignFlavour
+ * @memberOf module:decoration
  */
 export function assignFlavour(
   object: object,
