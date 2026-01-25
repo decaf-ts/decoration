@@ -22,7 +22,7 @@ export {
  * @param {string} flavour Flavour identifier to assign.
  * @return {ClassDecorator} Decorator that assigns the flavour when applied.
  * @function uses
- * @category Class Decorators
+ * @category Decorators
  */
 export function uses(flavour: string) {
   return (object: any) => {

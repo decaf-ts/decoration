@@ -57,6 +57,7 @@ describe(`E2E Decoration Tests [${TEST_ROOT}]`, () => {
 
       @uses("decaf")
       @markerDecorator
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       class MarkedClass {}
 
       expect(decoratorApplied).toBe(true);
@@ -179,6 +180,7 @@ describe(`E2E Decoration Tests [${TEST_ROOT}]`, () => {
   describeIfSrc("Decorator Extension", () => {
     it("should extend existing decorator", () => {
       // Define base decorator
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const baseDecorator = Decoration.for("extendable")
         .define((target: any) => {
           Metadata.set(target, "base", true);
@@ -241,6 +243,7 @@ describe(`E2E Decoration Tests [${TEST_ROOT}]`, () => {
 
   describe("Flavour Resolver", () => {
     it("should allow setting custom resolver", () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const originalResolver = (target: object): string => "decaf";
 
       // Store original state
@@ -294,6 +297,7 @@ describe(`E2E Decoration Tests [${TEST_ROOT}]`, () => {
       class BaseDecoratedClass {}
 
       @uses("decaf")
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       class DerivedClass extends BaseDecoratedClass {}
 
       expect(Metadata.get(BaseDecoratedClass, "decorated")).toBe(true);

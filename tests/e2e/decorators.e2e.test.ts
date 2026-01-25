@@ -181,6 +181,7 @@ describeIfSrc(`E2E Decorators Tests [${TEST_ROOT}]`, () => {
     it("should register individual parameter metadata", () => {
       @uses("decaf")
       class ParamTestClass {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         process(@param() input: string, @param() count: number): void {}
       }
 
@@ -300,6 +301,7 @@ describeIfSrc(`E2E Decorators Tests [${TEST_ROOT}]`, () => {
     it("should combine metadata and param decorators", () => {
       @uses("decaf")
       class ParamMetaTest {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         process(@paramMetadata("param.special", true) input: string): void {}
       }
 
@@ -330,11 +332,7 @@ describeIfSrc(`E2E Decorators Tests [${TEST_ROOT}]`, () => {
     it("should apply mixed decorators to properties", () => {
       @uses("decaf")
       class ApplyPropTest {
-        @apply(
-          metadata("custom1", true),
-          metadata("custom2", "value"),
-          prop()
-        )
+        @apply(metadata("custom1", true), metadata("custom2", "value"), prop())
         field!: string;
       }
 
@@ -516,6 +514,7 @@ describeIfSrc(`E2E Decorators Tests [${TEST_ROOT}]`, () => {
 
     it("should handle static methods", () => {
       @uses("decaf")
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       class StaticMethodClass {
         @method()
         static staticMethod(): string {

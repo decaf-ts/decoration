@@ -20,6 +20,7 @@ describe(`E2E Metadata Tests [${TEST_ROOT}]`, () => {
   // Dynamically loaded decorators
   let prop: ReturnType<typeof lib.prop>;
   let method: ReturnType<typeof lib.method>;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let metadata: typeof lib.metadata;
   let description: typeof lib.description;
   let uses: typeof lib.uses;
@@ -285,6 +286,7 @@ describe(`E2E Metadata Tests [${TEST_ROOT}]`, () => {
       expect(directProps).toContain("derivedProp");
 
       // Inherited properties are accessible via type()
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const baseType = Metadata.type(DerivedClass, "baseProp");
       // Note: type may be undefined without reflect-metadata emitting design:type
       // The key test is that no errors occur and inheritance chain works
