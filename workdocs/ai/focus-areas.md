@@ -1,0 +1,3 @@
+- Metadata. it's public api. how to use. how it sotres and retrievves data.
+- Decoration. how to use to create, override, overide with differen flavours and extend;
+- prop, apply, metadata, etc decorators
