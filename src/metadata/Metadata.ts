@@ -133,6 +133,7 @@ export function setValueBySplitter(
  *   S-->>C: String
  */
 export class Metadata {
+  private static _allowReRegistration = false;
   /**
    * @description In-memory storage of metadata by constructor symbol
    * @summary Maps a Symbol derived from the constructor to its metadata object, enabling efficient lookup.
@@ -183,6 +184,10 @@ export class Metadata {
     const meta = this.get(resolvedModel);
     if (!meta || !meta.properties) return undefined;
     return Object.keys(meta.properties);
+  }
+
+  static allowReregistration(value = true) {
+    this._allowReRegistration = value;
   }
 
   /**
@@ -602,7 +607,7 @@ export class Metadata {
   static registerLibrary(library: string, version: string) {
     const symbol = Symbol.for(DecorationKeys.LIBRARIES);
     const lib = this.innerGet(symbol, library);
-    if (lib)
+    if (lib && !this._allowReRegistration)
       throw new Error(
         `Library already ${library} registered with version ${version}`
       );
