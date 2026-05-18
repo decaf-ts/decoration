@@ -1,7 +1,10 @@
 import { Constructor } from "../metadata/types";
 import { DefaultFlavour } from "../constants";
 
-type FlavourResolver = (model: Constructor) => string;
+type FlavourResolver = (
+  model: Constructor,
+  ...args: any[]
+) => string;
 type PendingResolver = (target: any, flavour?: string) => void;
 
 let flavourResolver: FlavourResolver | undefined;
@@ -27,9 +30,12 @@ export function registerFlavourResolver(resolver: FlavourResolver): void {
  * @function resolveFlavour
  * @memberOf module:decoration
  */
-export function resolveFlavour(model: Constructor): string {
+export function resolveFlavour(
+  model: Constructor,
+  ...args: any[]
+): string {
   if (!flavourResolver) return DefaultFlavour;
-  return flavourResolver(model);
+  return flavourResolver(model, ...args);
 }
 
 /**

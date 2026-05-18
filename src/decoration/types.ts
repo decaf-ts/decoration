@@ -89,4 +89,7 @@ export interface IDecorationBuilder
  * @typeDef FlavourResolver
  * @memberOf module:decoration
  */
-export type FlavourResolver = (target: object) => string;
+export type FlavourResolver = (
+  target: object,
+  ...args: any[]
+) => string;

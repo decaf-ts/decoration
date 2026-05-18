@@ -23,7 +23,11 @@ import { method, prop } from "../shared/core";
  * @function flavourResolver
  * @memberOf module:decoration
  */
-function flavourResolver(target: object): string {
+function flavourResolver(
+  target: object,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  ...args: any[]
+): string {
   const owner = Metadata.constr(
     typeof target === "function" ? target : (target as any)?.constructor
   );
@@ -338,7 +342,9 @@ export class Decoration implements IDecorationBuilder {
   private static flavourResolver: FlavourResolver = flavourResolver;
 
   static {
-    registerFlavourResolver((model) => this.flavourResolver(model));
+    registerFlavourResolver((model, ...args) =>
+      this.flavourResolver(model, ...args)
+    );
     registerPendingResolver((target, flavour) =>
       this.resolvePendingDecorators(target, flavour)
     );

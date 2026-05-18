@@ -223,8 +223,8 @@ export class Metadata {
     );
   }
 
-  static flavourOf(model: Constructor): string {
-    return resolveFlavour(model);
+  static flavourOf(model: Constructor, ...args: any[]): string {
+    return resolveFlavour(model, ...args);
   }
 
   static flavouredAs(flavour: string): Constructor[] {
