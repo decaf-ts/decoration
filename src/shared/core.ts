@@ -206,6 +206,9 @@ export function method() {
 /**
  * @description Decorator factory that applies multiple decorators to a single target.
  * @summary Creates a composite decorator that applies multiple decorators in sequence, correctly handling class, method, property, and parameter decorators.
+ * Mirrors TypeScript's own `__decorate` chaining: a class decorator that returns a replacement constructor (or a method/property
+ * decorator that returns a replacement descriptor) has that return value threaded into the next decorator and ultimately returned,
+ * instead of being silently dropped.
  * @param {Array<ClassDecorator|MethodDecorator|PropertyDecorator|ParameterDecorator>} decorators Collection of decorators to apply.
  * @return {ClassDecorator|MethodDecorator|PropertyDecorator|ParameterDecorator} Decorator function that applies all provided decorators to the target.
  * @function apply
@@ -215,11 +218,13 @@ export function method() {
  *   participant A as apply(...decorators)
  *   participant D as Decorator
  *   U->>A: get decorator(...decorators)
- *   A->>U: returns (target, key?, desc?) => void
+ *   A->>U: returns (target, key?, desc?) => replacement
  *   U->>A: invoke on target
  *   loop for each decorator
  *     A->>D: invoke appropriate decorator type
+ *     D-->>A: replacement (constructor/descriptor) or void
  *   end
+ *   A->>U: returns final replacement
  * @category Decorators
  */
 export function apply(
@@ -232,25 +237,33 @@ export function apply(
     propertyKey?: string | symbol | unknown,
     descriptor?: PropertyDescriptor | number
   ) => {
+    let currentTarget = target;
+    let currentDescriptor = descriptor;
     for (const decorator of decorators) {
       if (typeof propertyKey === "undefined") {
-        (decorator as ClassDecorator)(target as any);
+        currentTarget =
+          (decorator as ClassDecorator)(currentTarget as any) ||
+          currentTarget;
         continue;
       }
-      if (typeof descriptor === "number") {
+      if (typeof currentDescriptor === "number") {
         (decorator as ParameterDecorator)(
           target,
           propertyKey as string | symbol,
-          descriptor
+          currentDescriptor
         );
         continue;
       }
-      (decorator as MethodDecorator | PropertyDecorator)(
-        target,
-        propertyKey as string | symbol,
-        descriptor as TypedPropertyDescriptor<unknown>
-      );
+      currentDescriptor =
+        (decorator as MethodDecorator | PropertyDecorator)(
+          target,
+          propertyKey as string | symbol,
+          currentDescriptor as TypedPropertyDescriptor<unknown>
+        ) || currentDescriptor;
     }
+    return typeof propertyKey === "undefined"
+      ? currentTarget
+      : currentDescriptor;
   };
 }
 
