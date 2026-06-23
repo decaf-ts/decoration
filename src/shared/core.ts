@@ -206,9 +206,13 @@ export function method() {
 /**
  * @description Decorator factory that applies multiple decorators to a single target.
  * @summary Creates a composite decorator that applies multiple decorators in sequence, correctly handling class, method, property, and parameter decorators.
- * Mirrors TypeScript's own `__decorate` chaining: a class decorator that returns a replacement constructor (or a method/property
+ * Mirrors TypeScript's own `__decorate` chaining: a class decorator that returns a replacement constructor (or a method
  * decorator that returns a replacement descriptor) has that return value threaded into the next decorator and ultimately returned,
- * instead of being silently dropped.
+ * instead of being silently dropped. Property and parameter decorators never receive or produce a replacement value, since
+ * `__decorate` itself ignores their return value (it only calls `Object.defineProperty` when a descriptor was supplied).
+ * The composite is typed `any` because the same value must satisfy `ClassDecorator`, `MethodDecorator`, `PropertyDecorator`
+ * and `ParameterDecorator` simultaneously depending on where it is used, and TypeScript checks the literal call result type
+ * against the target decorator's expected return type at each `@decorator` site.
  * @param {Array<ClassDecorator|MethodDecorator|PropertyDecorator|ParameterDecorator>} decorators Collection of decorators to apply.
  * @return {ClassDecorator|MethodDecorator|PropertyDecorator|ParameterDecorator} Decorator function that applies all provided decorators to the target.
  * @function apply
@@ -231,12 +235,12 @@ export function apply(
   ...decorators: Array<
     ClassDecorator | MethodDecorator | PropertyDecorator | ParameterDecorator
   >
-) {
+): any {
   return (
     target: object,
     propertyKey?: string | symbol | unknown,
     descriptor?: PropertyDescriptor | number
-  ) => {
+  ): any => {
     let currentTarget = target;
     let currentDescriptor = descriptor;
     for (const decorator of decorators) {
@@ -254,8 +258,12 @@ export function apply(
         );
         continue;
       }
+      if (typeof currentDescriptor === "undefined") {
+        (decorator as PropertyDecorator)(target, propertyKey as string | symbol);
+        continue;
+      }
       currentDescriptor =
-        (decorator as MethodDecorator | PropertyDecorator)(
+        (decorator as MethodDecorator)(
           target,
           propertyKey as string | symbol,
           currentDescriptor as TypedPropertyDescriptor<unknown>

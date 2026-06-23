@@ -87,4 +87,46 @@ describe("apply()", () => {
 
     expect(result.value).toBe("replaced");
   });
+
+  it("invokes property decorators with no descriptor and ignores any returned value", () => {
+    const received: unknown[] = [];
+    function spy(returnValue?: unknown): PropertyDecorator {
+      return ((...args: unknown[]) => {
+        received.push(args);
+        return returnValue;
+      }) as unknown as PropertyDecorator;
+    }
+
+    class HasProp {
+      prop!: string;
+    }
+
+    const decorator = apply(spy({ sneaky: true }), spy(42));
+    const result = decorator(HasProp.prototype, "prop");
+
+    expect(received).toEqual([
+      [HasProp.prototype, "prop"],
+      [HasProp.prototype, "prop"],
+    ]);
+    expect(result).toBeUndefined();
+  });
+
+  it("does not leak a truthy property decorator return value into the next decorator's descriptor argument", () => {
+    const descriptors: unknown[] = [];
+    function spy(returnValue?: unknown): PropertyDecorator {
+      return ((..._args: unknown[]) => {
+        descriptors.push(_args[2]);
+        return returnValue;
+      }) as unknown as PropertyDecorator;
+    }
+
+    class HasProp {
+      prop!: string;
+    }
+
+    const decorator = apply(spy("not-a-descriptor"), spy());
+    decorator(HasProp.prototype, "prop");
+
+    expect(descriptors).toEqual([undefined, undefined]);
+  });
 });
