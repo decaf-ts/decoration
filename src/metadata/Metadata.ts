@@ -319,15 +319,20 @@ export class Metadata {
     return this.get(model, this.key(DecorationKeys.PROPERTIES, prop));
   }
 
-  /**
-   * @description Resolves the canonical constructor associated with the provided model handle and metadata.
-   * @summary Returns the stored constructor reference when the provided model is a proxy or reduced value. Falls back to the original model when no constructor metadata has been recorded yet.
-   * @template M
-   * @param {Constructor<M>} model Model used when recording metadata.
-   * @return {Constructor<M>} Canonical constructor if stored, otherwise the provided one`.
-   */
+/**
+ * @description Resolves the canonical constructor for the given model, returning it only if the model defines its own `__original` static property (DecorationKeys.CONSTRUCTOR). Inherited `__original` values from base classes are not considered.
+ * @summary Returns the stored constructor reference when the model has its own `__original` static property; otherwise returns the provided model unchanged.
+ * @template M
+ * @param {Constructor<M>} model Model used when recording metadata.
+ * @return {Constructor<M>} Canonical constructor if stored, otherwise the provided one`.
+ */
   static constr<M>(model: Constructor<M>): Constructor<M> {
-    return model[DecorationKeys.CONSTRUCTOR as keyof typeof model] || model;
+    if (
+      typeof model === "function" &&
+      Object.prototype.hasOwnProperty.call(model, DecorationKeys.CONSTRUCTOR)
+    )
+      return model[DecorationKeys.CONSTRUCTOR as keyof typeof model];
+    return model;
   }
 
   /**

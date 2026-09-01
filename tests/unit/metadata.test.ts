@@ -189,3 +189,43 @@ describe("Metadata store", () => {
     ).toBe(Example);
   });
 });
+
+describe("constr own-property semantics", () => {
+  it("resolves the own original of a wrapper carrying its own __original", () => {
+    class Original {}
+    class Wrapper {}
+
+    Metadata.set(Wrapper as any, DecorationKeys.CONSTRUCTOR, Original);
+
+    expect(
+      Object.prototype.hasOwnProperty.call(Wrapper, DecorationKeys.CONSTRUCTOR)
+    ).toBe(true);
+    expect(Metadata.constr(Wrapper as any)).toBe(Original);
+  });
+
+  it("does not resolve an inherited __original for a bare subclass", () => {
+    class Original {}
+    class Wrapper {}
+
+    Metadata.set(Wrapper as any, DecorationKeys.CONSTRUCTOR, Original);
+
+    class BareSub extends Wrapper {}
+
+    // the inherited value is still readable through the prototype chain
+    expect((BareSub as any)[DecorationKeys.CONSTRUCTOR]).toBe(Original);
+    expect(
+      Object.prototype.hasOwnProperty.call(BareSub, DecorationKeys.CONSTRUCTOR)
+    ).toBe(false);
+    // but constr must not fall back to it
+    expect(Metadata.constr(BareSub as any)).toBe(BareSub);
+  });
+
+  it("resolves an undecorated class unchanged", () => {
+    class Plain {}
+
+    expect(
+      Object.prototype.hasOwnProperty.call(Plain, DecorationKeys.CONSTRUCTOR)
+    ).toBe(false);
+    expect(Metadata.constr(Plain as any)).toBe(Plain);
+  });
+});

@@ -16,8 +16,11 @@ import {
 import { method, prop } from "../shared/core";
 
 /**
- * @description Default resolver that returns the current default flavour.
- * @summary Resolves the flavour for a given target by always returning the library's `DefaultFlavour` value.
+ * @description Resolves the flavour for a given target based on its metadata.
+ * @summary Determines the flavour using the following precedence: the target's own FLAVOUR bucket,
+ * then the most‑derived inherited flavour from the constructor chain,
+ * then any registered flavour for the owner (if non‑default),
+ * falling back to the library's default flavour.
  * @param {object} target Target object being decorated.
  * @return {string} Resolved flavour identifier.
  * @function flavourResolver
@@ -27,10 +30,11 @@ function flavourResolver(target: object): string {
   const owner = Metadata.constr(
     typeof target === "function" ? target : (target as any)?.constructor
   );
-  const meta = Metadata["innerGet"](
-    Metadata.Symbol(owner),
-    DecorationKeys.FLAVOUR
-  );
+  const meta =
+    Metadata["innerGet"](
+      Metadata.Symbol(owner),
+      DecorationKeys.FLAVOUR
+    ) ?? inheritedFlavour(owner);
   if (meta && meta !== Decoration.defaultFlavour) return meta;
   const registered =
     typeof Metadata["registeredFlavour"] === "function"
@@ -38,6 +42,27 @@ function flavourResolver(target: object): string {
       : undefined;
   if (registered && registered !== Decoration.defaultFlavour) return registered;
   return meta ?? Decoration.defaultFlavour;
+}
+
+/**
+ * @description Resolves the flavour declared by any ancestor of a constructor.
+ * @summary Walks the constructor inheritance chain from base to leaf and returns the flavour declared closest to the provided constructor, keeping `uses` inheritance working without reading sibling models' metadata.
+ * @param {object} owner Constructor whose ancestors should be inspected.
+ * @return {string|undefined} Inherited flavour identifier, if any ancestor declared one.
+ * @function inheritedFlavour
+ * @memberOf module:decoration
+ */
+function inheritedFlavour(owner: object): string | undefined {
+  const chain: any[] = Metadata["collectConstructorChain"](owner as any) ?? [];
+  let flavour: string | undefined;
+  for (const ctor of chain) {
+    const declared = Metadata["innerGet"](
+      Metadata.Symbol(ctor),
+      DecorationKeys.FLAVOUR
+    );
+    if (declared) flavour = declared;
+  }
+  return flavour;
 }
 
 /**
