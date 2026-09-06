@@ -31,7 +31,7 @@
     "test:unit": "jest --testPathPatterns=\"/tests/unit\" --passWithNoTests --detectOpenHandles",
     "test:integration": "jest --testPathPatterns=\"/tests/(integration)\" --passWithNoTests --detectOpenHandles",
     "test:all": "jest --testPathPatterns=\"/tests\" --passWithNoTests --detectOpenHandles",
-    "test:e2e": "jest --testPathPatterns=\"/tests/e2e\" --testRegex='.*\\.e2e\\.test\\.ts' --passWithNoTests --detectOpenHandles",
+    "test:e2e": "jest --testPathPatterns=\"/tests/e2e\" --testRegex='.*\\.e2e\\.ts' --passWithNoTests --detectOpenHandles",
     "test:e2e:src": "TEST_ROOT=src npm run test:e2e",
     "test:e2e:lib": "npm run build && TEST_ROOT=lib npm run test:e2e",
     "test:e2e:dist": "npm run build:prod && TEST_ROOT=dist npm run test:e2e",
