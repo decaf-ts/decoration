@@ -1,3 +1,4 @@
+import { it } from "@decaf-ts/for-testing";
 import { Decoration, DefaultFlavour, Metadata, uses } from "../../src/index";
 
 describe("Multiple Decoration Compatibility", () => {

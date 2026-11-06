@@ -1,3 +1,4 @@
+import { it } from "@decaf-ts/for-testing";
 import { method, Metadata, param } from "../../src";
 
 describe("decoration: methods", () => {

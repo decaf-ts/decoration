@@ -1,3 +1,4 @@
+import { it } from "@decaf-ts/for-testing";
 /**
  * @description E2E tests for Decoration class functionality
  * Tests Decoration builder pattern and flavour system against src/lib/dist builds

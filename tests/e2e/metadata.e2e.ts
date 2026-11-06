@@ -1,3 +1,4 @@
+import { it } from "@decaf-ts/for-testing";
 /**
  * @description E2E tests for Metadata class functionality
  * Tests Metadata public API against src/lib/dist builds

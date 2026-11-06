@@ -1,3 +1,4 @@
+import { it } from "@decaf-ts/for-testing";
 import { Decoration, DecorationKeys, Metadata, uses } from "../../src/index";
 Decoration.defaultFlavour = "XXX";
 

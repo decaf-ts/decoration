@@ -1,3 +1,4 @@
+import { it } from "@decaf-ts/for-testing";
 /**
  * @description E2E tests for decoration package decorators
  * Tests all property, method, parameter, and class decorators against src/lib/dist builds

@@ -1,3 +1,4 @@
+import { it } from "@decaf-ts/for-testing";
 import { Decoration, Metadata, metadata, uses } from "../../src";
 
 describe("Decoration flavour fallback", () => {

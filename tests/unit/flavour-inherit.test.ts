@@ -1,3 +1,4 @@
+import { it } from "@decaf-ts/for-testing";
 import { DecorationKeys, Metadata, uses } from "../../src";
 
 describe("Inherited flavour resolution", () => {

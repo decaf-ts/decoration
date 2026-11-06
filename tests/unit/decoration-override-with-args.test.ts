@@ -1,3 +1,4 @@
+import { it } from "@decaf-ts/for-testing";
 import { Decoration, propMetadata } from "../../src";
 
 export const Reporter = {
