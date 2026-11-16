@@ -896,11 +896,21 @@ export class Decoration implements IDecorationBuilder {
         if (typeof d === "object") {
           const entry = d as any;
           const candidateIndex = index < baseLength ? index : 0;
-          const overrideArgs =
-            index < baseLength ? argsOverrides[candidateIndex] : undefined;
+          const isExtra = index >= baseLength;
+          const hasOwnArgs = "args" in entry && Array.isArray(entry.args);
+          // An extension (`extend`) without its own args receives the
+          // arguments of the decorator CALL it extends (the base's call
+          // args). The registered args (`baseArgsByIndex`) are only the last
+          // `define()`'s — for decorators like `@index(...)` that re-define
+          // on every call, those belong to whichever call ran last.
+          const overrideArgs = isExtra
+            ? hasOwnArgs
+              ? undefined
+              : argsOverrides[0]
+            : argsOverrides[candidateIndex];
           const args =
             overrideArgs ||
-            ("args" in entry && Array.isArray(entry.args)
+            (hasOwnArgs
               ? entry.args
               : (baseArgsByIndex[candidateIndex] ??
                 defaultArgsByIndex[candidateIndex] ??
