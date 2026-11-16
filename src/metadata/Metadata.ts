@@ -139,6 +139,9 @@ export class Metadata {
    * @summary Maps a Symbol derived from the constructor to its metadata object, enabling efficient lookup.
    */
   private static _metadata: Record<symbol, any> = {};
+
+  /** {@link Metadata.Symbol} per constructor (with the name it was computed for). */
+  private static _symbols = new WeakMap<object, { name: string; symbol: symbol }>();
   /**
    * @description Property index store keyed by constructor symbol
    * @summary Tracks property keys that have been decorated, independent of metadata bucket mutations.
@@ -164,7 +167,21 @@ export class Metadata {
   private constructor() {}
 
   static Symbol<M>(obj: Constructor<M>) {
-    return Symbol.for([obj.toString(), obj.name].join(" - "));
+    // `obj.toString()` serialises the whole class source, and this runs on
+    // every metadata read: cache it per constructor. Only the key is cached —
+    // never metadata values, which are always read from the live store. The
+    // symbol is the one the expression yields (a function's source does not
+    // change; a static `toString()` must be stable per constructor, as every
+    // metadata key depends on it), recomputed if the class is renamed.
+    if (typeof obj !== "function")
+      return Symbol.for(
+        [(obj as any).toString(), (obj as any).name].join(" - ")
+      );
+    const cached = this._symbols.get(obj);
+    if (cached && cached.name === obj.name) return cached.symbol;
+    const symbol = Symbol.for([obj.toString(), obj.name].join(" - "));
+    this._symbols.set(obj, { name: obj.name, symbol });
+    return symbol;
   }
 
   // No scheduling or readiness tracking here; callers should only
